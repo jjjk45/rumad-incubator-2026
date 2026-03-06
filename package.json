@@ -1,0 +1,9 @@
+{
+"name": "rumad-incubator-2026",
+"private": true,
+"workspaces": [
+"mobile",
+"backend",
+"shared"
+]
+}
