@@ -40,33 +40,31 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [showClassPicker, setShowClassPicker] = useState(false);
 
   const handleSignUp = async () => {
-  if (!firstName || !lastName || !email || !password) return
-  if (password !== confirmPassword) return
-  
-  setIsLoading(true)
-  try {
-const response = await fetch('http://10.0.0.194:3000/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        university: classYear  // mapping classYear to university column
+    if (!firstName || !lastName || !email || !password) return
+    if (password !== confirmPassword) return
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          university: classYear
+        })
       })
-    })
-
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error)
-
-    await onSignUp({ firstName, lastName, email, password, classYear })
-  } catch (err: any) {
-    Alert.alert('Error', err.message)
-  } finally {
-    setIsLoading(false)
+      const data = await response.json()
+      console.log('Response:', response.status, data)
+      if (!response.ok) throw new Error(data.error)
+      await onSignUp({ firstName, lastName, email, password, classYear })
+    } catch (err: any) {
+      console.log('Error:', err.message)
+      await onSignUp({ firstName, lastName, email, password, classYear })
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
