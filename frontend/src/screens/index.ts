@@ -7,3 +7,4 @@ export { PostItemScreen } from './PostItemScreen';
 export { AccountScreen } from './AccountScreen';
 export { ActivityScreen } from './ActivityScreen';
 export { ChatDetailScreen } from './ChatDetailScreen';
+export { OTPScreen } from './OTPScreen';

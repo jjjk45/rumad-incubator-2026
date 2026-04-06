@@ -13,9 +13,10 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface LandingScreenProps {
   onGetStarted: () => void;
+  onDemoMode: () => void;
 }
 
-export function LandingScreen({ onGetStarted }: LandingScreenProps) {
+export function LandingScreen({ onGetStarted, onDemoMode }: LandingScreenProps) {
   return (
     <View style={styles.container}>
       {/* Soft blur light background */}
@@ -83,6 +84,15 @@ export function LandingScreen({ onGetStarted }: LandingScreenProps) {
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Get Started!</Text>
+        </TouchableOpacity>
+
+        {/* Demo Mode Button */}
+        <TouchableOpacity
+          style={styles.demoButton}
+          onPress={onDemoMode}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.demoButtonText}>Demo Mode</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -216,6 +226,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.textOnPrimary,
+    lineHeight: 24,
+  },
+  demoButton: {
+    backgroundColor: 'rgba(172, 44, 19, 0.1)',
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: 112,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  demoButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
     lineHeight: 24,
   },
 });

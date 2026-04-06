@@ -20,11 +20,12 @@ interface SignUpScreenProps {
     classYear: string;
   }) => void;
   onSignIn: () => void;
+  onOTPRequired: () => void;
 }
 
 const CLASS_YEARS = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
 
-export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
+export function SignUpScreen({ onSignUp, onSignIn, onOTPRequired }: SignUpScreenProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -38,7 +39,12 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     if (!firstName || !lastName || !email || !password) return;
     setIsLoading(true);
     await onSignUp({ firstName, lastName, email, password, classYear });
-    setIsLoading(false);
+    // If onOTPRequired is passed, use it; otherwise just set loading false and go home
+    if (onOTPRequired) {
+      onOTPRequired();
+    } else {
+      setIsLoading(false);
+    }
   };
 
   return (

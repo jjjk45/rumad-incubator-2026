@@ -16,12 +16,14 @@ import {
   AccountScreen,
   ActivityScreen,
   ChatDetailScreen,
+  OTPScreen,
 } from './src/screens';
 
 type Screen =
   | 'landing'
   | 'signin'
   | 'signup'
+  | 'otpVerification'
   | 'home'
   | 'itemDetails'
   | 'postItem'
@@ -35,6 +37,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabRoute>('Explore');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+
+  // Demo user for demo mode
+  const demoUser: User = {
+    id: 'demo-user',
+    firstName: 'Demo',
+    lastName: 'User',
+    email: 'demo@rutgers.edu',
+    university: 'Rutgers University',
+    classYear: 'Senior',
+    rating: 5.0,
+    reviewCount: 100,
+    isVerified: true,
+  };
 
   // Mock current user
   const currentUser: User = {
@@ -54,6 +69,21 @@ export default function App() {
     setCurrentScreen('signup');
   };
 
+  const handleDemoMode = () => {
+    setIsAuthenticated(true);
+    setCurrentScreen('home');
+  };
+
+  const handleVerifyOTP = (otp: string) => {
+    console.log('Verifying OTP:', otp);
+    setIsAuthenticated(true);
+    setCurrentScreen('home');
+  };
+
+  const handleResendOTP = () => {
+    console.log('Resending OTP');
+  };
+
   const handleSignIn = (email: string, password: string) => {
     console.log('Signing in:', email);
     setIsAuthenticated(true);
@@ -69,7 +99,8 @@ export default function App() {
   }) => {
     console.log('Signing up:', userData);
     setIsAuthenticated(true);
-    setCurrentScreen('home');
+    // Navigate to OTP verification screen
+    setCurrentScreen('otpVerification');
   };
 
   const handleTabPress = (tab: TabRoute) => {
@@ -99,6 +130,8 @@ export default function App() {
     if (currentScreen === 'chatDetail') {
       setCurrentScreen('activity');
       setActiveChatId(null);
+    } else if (currentScreen === 'otpVerification') {
+      setCurrentScreen('signup');
     } else if (currentScreen === 'itemDetails') {
       setCurrentScreen('home');
     } else if (currentScreen === 'postItem') {
@@ -129,7 +162,7 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'landing':
-        return <LandingScreen onGetStarted={handleGetStarted} />;
+        return <LandingScreen onGetStarted={handleGetStarted} onDemoMode={handleDemoMode} />;
 
       case 'signin':
         return (
@@ -145,6 +178,16 @@ export default function App() {
           <SignUpScreen
             onSignUp={handleSignUp}
             onSignIn={() => setCurrentScreen('signin')}
+            onOTPRequired={() => setCurrentScreen('otpVerification')}
+          />
+        );
+
+      case 'otpVerification':
+        return (
+          <OTPScreen
+            onVerifyOTP={handleVerifyOTP}
+            onResendOTP={handleResendOTP}
+            onBack={() => setCurrentScreen('signup')}
           />
         );
 
@@ -218,13 +261,13 @@ export default function App() {
         ) : null;
 
       default:
-        return <LandingScreen onGetStarted={handleGetStarted} />;
+        return <LandingScreen onGetStarted={handleGetStarted} onDemoMode={handleDemoMode} />;
     }
   };
 
   // Show bottom nav bar for authenticated screens
   const showBottomNav =
-    isAuthenticated &&
+    (isAuthenticated || currentScreen === 'home') &&
     (currentScreen === 'home' ||
       currentScreen === 'postItem' ||
       currentScreen === 'activity' ||
