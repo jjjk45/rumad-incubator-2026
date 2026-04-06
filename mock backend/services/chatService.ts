@@ -1,9 +1,12 @@
 import { Chat, ChatLocal } from "../../shared/types/all.ts";
 import { mockChats } from "../mockData/chat.ts";
+import { mockMessages } from "../mockData/messages.ts";
 import { getUserById } from "./userService.ts";
+import { ApiError } from "../api/errors.ts";
+import { generateId } from "../utils/generateId.ts";
 
-const MOCK_DELAY_MS = 50;
-async function delay() {
+const MOCK_DELAY_MS = 50; // simulate network time, we obviously wont use this in the real service
+function delay() {
   return new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
 }
 
@@ -19,8 +22,10 @@ export async function getChatsForUser(userId: string): Promise<ChatLocal[]> {
       return {
         ...chat,
         otherUserId,
-        otherUserName: otherUser?.userName ?? "Unknown", //implicit fallback, do i throw here?
-        unreadCount: 0, // how shold this be calculated
+        otherUserName: otherUser?.userName ?? "Unknown",
+        unreadCount: mockMessages.filter(
+          (m) => m.chatId === chat.id && m.senderId !== userId && !m.isRead
+        ).length,
       };
     })
   );
@@ -43,18 +48,39 @@ export async function getChatWithUser(userId: string, otherUserId: string): Prom
   );
 }
 
-// Creates a new chat between two users
+// Creates a new chat between two users, or returns the existing one
 export async function createChat(userId: string, otherUserId: string, listingImage?: string): Promise<Chat> {
   await delay();
+  const existing = mockChats.find(
+    (c) =>
+      (c.user1Id === userId && c.user2Id === otherUserId) ||
+      (c.user1Id === otherUserId && c.user2Id === userId)
+  );
+  if (existing) return existing;
+
   const newChat: Chat = {
-    id: `CH${String(mockChats.length + 1).padStart(4, "0")}`,
+    id: generateId(),
     user1Id: userId,
     user2Id: otherUserId,
-    isActiveTrade: false,
     totalMessageCount: 0,
     listingImage,
   };
 
   mockChats.push(newChat);
   return newChat;
+}
+
+export async function updateTradeStatus(
+  chatId: string,
+  userId: string,
+  status: Chat['tradeStatus']
+): Promise<Chat> {
+  await delay();
+  const chat = mockChats.find((c) => c.id === chatId);
+  if (!chat) throw new ApiError(404, `Chat ${chatId} not found`);
+  if (chat.user1Id !== userId && chat.user2Id !== userId) {
+    throw new ApiError(403, "Forbidden");
+  }
+  chat.tradeStatus = status;
+  return chat;
 }

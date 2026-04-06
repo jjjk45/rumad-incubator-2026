@@ -1,25 +1,22 @@
-import { useState, useEffect } from "react";
-import { User, UserPublic } from "../../shared/types/all.ts";
-import { fetchMe, fetchUserById, fetchAllUsers } from "../api/usersApi.ts";
+import { useCallback, useState, useEffect } from "react";
+import { User, UserPublic, UpdateUserInput } from "../../shared/types/all.ts";
+import { fetchMe, fetchUserById, fetchAllUsers, patchMe } from "../api/usersApi.ts";
 import { ApiError } from "../api/errors.ts";
-import { useAuth } from "./authHook.ts";
 
 // Full profile - only use for the logged-in user's own data
 export function useCurrentUser() {
-  const { userId } = useAuth();
   const [user, setUser] = useState<User | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    fetchMe(userId)
+    fetchMe()
       .then(setUser)
       .catch(setError)
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, []);
 
-  return { user, loading, error, isUnauthorized: !userId };
+  return { user, loading, error, isUnauthorized: error?.status === 401 };
 }
 
 // Public profile — use when viewing another user (e.g. seller on a listing)
@@ -52,4 +49,24 @@ export function useAllUsers() {
   }, []);
 
   return { users, loading, error };
+}
+
+export function useUpdateUser() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const update = useCallback(async (input: UpdateUserInput): Promise<User> => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await patchMe(input);
+    } catch (err) {
+      setError(err as ApiError);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { update, loading, error };
 }

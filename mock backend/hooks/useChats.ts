@@ -1,29 +1,27 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Chat, ChatLocal } from "../../shared/types/all.ts";
 import {
   fetchChatsForUser,
   fetchChatById,
   fetchChatWithUser,
   postCreateChat,
+  patchTradeStatus,
 } from "../api/chatsApi.ts";
 import { ApiError } from "../api/errors.ts";
-import { useAuth } from "./authHook.ts";
 
 export function useChats() {
-  const { userId } = useAuth();
   const [chats, setChats] = useState<ChatLocal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    fetchChatsForUser(userId)
+    fetchChatsForUser()
       .then(setChats)
       .catch(setError)
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, []);
 
-  return { chats, loading, error, isUnauthorized: !userId };
+  return { chats, loading, error, isUnauthorized: error?.status === 401 };
 }
 
 export function useChat(id: string) {
@@ -43,19 +41,40 @@ export function useChat(id: string) {
 
 // Looks up an existing chat with a user, or creates one if it doesn't exist
 export function useOrCreateChat(otherUserId: string, listingImage?: string) {
-  const { userId } = useAuth();
   const [chat, setChat] = useState<Chat | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    fetchChatWithUser(userId, otherUserId)
-      .then((existing) => existing ?? postCreateChat(userId, otherUserId, listingImage))
+    fetchChatWithUser(otherUserId)
+      .then((existing) => existing ?? postCreateChat(otherUserId, listingImage))
       .then(setChat)
       .catch(setError)
       .finally(() => setLoading(false));
-  }, [userId, otherUserId]);
+  }, [otherUserId, listingImage]);
 
-  return { chat, loading, error, isUnauthorized: !userId };
+  return { chat, loading, error, isUnauthorized: error?.status === 401 };
+}
+
+export function useUpdateTradeStatus() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const updateStatus = useCallback(
+    async (chatId: string, status: Chat['tradeStatus']): Promise<Chat> => {
+      setLoading(true);
+      setError(null);
+      try {
+        return await patchTradeStatus(chatId, status);
+      } catch (err) {
+        setError(err as ApiError);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  return { updateStatus, loading, error };
 }

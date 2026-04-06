@@ -1,19 +1,24 @@
+export type Campus = 'Livingston' | 'Busch' | 'College Ave' | 'Cook' | 'Douglass';
+export type ListingStatus = 'active' | 'sold' | 'pending';
+export type ListingCondition = 'Like New' | 'Good' | 'Fair' | 'Beat Up';
+export type CategoryName = 'Textbooks' | 'Appliances' | 'Electronics' | 'Furniture' | 'Clothing & Accessories' | 'Other';
+
 export interface UserPublic {
-  id: string; //need to decide on our uuid format
+  id: string;
   userName: string;
   school: string;
-  campus: 'Livingston' | 'Busch' | 'College Ave' | 'Cook' | 'Douglass' //ask users what campus they are closest to on signup
+  campus: Campus;
   classYear: string;
-  seller_rating: number | 'N/A';
-  buyer_rating: number | 'N/A';
+  sellerRating: number | 'N/A';
+  buyerRating: number | 'N/A';
   reviewCount: number;
-  isVerified: boolean; //need to implement verification
+  isVerified: boolean;
   avatar?: string;
 }
 
-//backend type
+// backend type
 export interface User extends UserPublic {
-  location?: string //ASK to store, latitude longitude
+  location?: { lat: number; long: number };
   email: string;
   firstName: string;
   lastName: string;
@@ -24,45 +29,96 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
-  condition: 'Like New' | 'Good' | 'Fair' | 'Beat Up';
-  category: string;
+  condition: ListingCondition;
+  category: CategoryName;
   images: string[];
-  sellerID: string;
-  campus: string;
-  locationPrecise?: string; //latitude longitude
+  sellerId: string;
+  campus: Campus;
+  locationPrecise?: { lat: number; long: number };
   timePosted: number; // Unix ms
-  status: 'active' | 'sold' | 'pending';
+  status: ListingStatus;
   isOpenToTrade: boolean;
   isNegotiable: boolean;
-  badge?: string; //this may be nonsense
+  badge?: string;
 }
 
-//use with frontend
-export interface ListingLocal {
-  distance?: number; //distance from <locationPrecise>, use haversine formula
+// use with frontend
+export interface ListingLocal extends Listing {
+  distance?: number; // distance from locationPrecise, use haversine formula
 }
 
 export interface Chat {
   id: string;
   user1Id: string;
   user2Id: string;
-  lastMessage?: string; // undefined if new chat
+  lastMessageId?: string; // undefined if new chat
   lastMessageTime?: number; // Unix ms
-  isActiveTrade: boolean;
   tradeStatus?: 'pending' | 'accepted' | 'declined' | 'completed';
   listingImage?: string;
   totalMessageCount: number;
 }
 
-//use with frontend
+// use with frontend
 export interface ChatLocal extends Chat {
   otherUserId: string; // whichever of user1Id/user2Id is not the current user
   otherUserName: string;
   unreadCount: number; // local/per-user, not stored on Chat itself
 }
 
+export interface Message {
+  id: string;
+  chatId: string;
+  senderId: string;
+  content: string;
+  timestamp: number; // Unix ms
+  isRead: boolean;
+}
+
 export interface Category {
   id: string;
-  name: string;
+  name: CategoryName;
   image: string;
+}
+
+// Input types for mutations
+// frontend sends these, server assigns the rest
+
+export interface CreateListingInput {
+  title: string;
+  description: string;
+  price: number;
+  condition: ListingCondition;
+  category: CategoryName;
+  images: string[];
+  campus: Campus;
+  locationPrecise?: { lat: number; long: number };
+  isOpenToTrade: boolean;
+  isNegotiable: boolean;
+}
+
+export interface UpdateListingInput {
+  title?: string;
+  description?: string;
+  price?: number;
+  condition?: ListingCondition;
+  category?: CategoryName;
+  images?: string[];
+  campus?: Campus;
+  locationPrecise?: { lat: number; long: number };
+  isOpenToTrade?: boolean;
+  isNegotiable?: boolean;
+  status?: ListingStatus;
+}
+
+export interface UpdateUserInput {
+  userName?: string;
+  school?: string;
+  campus?: Campus;
+  classYear?: string;
+  avatar?: string;
+  location?: { lat: number; long: number };
+}
+
+export interface SendMessageInput {
+  content: string;
 }

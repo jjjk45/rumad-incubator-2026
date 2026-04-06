@@ -4,27 +4,42 @@ import {
   getChatById,
   getChatWithUser,
   createChat,
+  updateTradeStatus,
 } from "../services/chatService.ts";
 import { ApiError } from "./errors.ts";
+import { mockAuth } from "../services/mockAuth.ts";
 
-// Real backend equivalent: GET /chats
-export async function fetchChatsForUser(userId: string): Promise<ChatLocal[]> {
+// GET /chats
+export async function fetchChatsForUser(): Promise<ChatLocal[]> {
+  const userId = mockAuth.getId();
+  if (!userId) throw new ApiError(401, "Unauthorized");
   return getChatsForUser(userId);
 }
 
-// Real backend equivalent: GET /chats/:id
+// GET /chats/:id
 export async function fetchChatById(id: string): Promise<Chat> {
   const chat = await getChatById(id);
   if (!chat) throw new ApiError(404, `Chat ${id} not found`);
   return chat;
 }
 
-// Real backend equivalent: GET /chats?otherUserId=:otherUserId
-export async function fetchChatWithUser(userId: string, otherUserId: string): Promise<Chat | undefined> {
+// GET /chats?otherUserId=:otherUserId
+export async function fetchChatWithUser(otherUserId: string): Promise<Chat | undefined> {
+  const userId = mockAuth.getId();
+  if (!userId) throw new ApiError(401, "Unauthorized");
   return getChatWithUser(userId, otherUserId);
 }
 
-// Real backend equivalent: POST /chats
-export async function postCreateChat(userId: string, otherUserId: string, listingImage?: string): Promise<Chat> {
+// POST /chats
+export async function postCreateChat(otherUserId: string, listingImage?: string): Promise<Chat> {
+  const userId = mockAuth.getId();
+  if (!userId) throw new ApiError(401, "Unauthorized");
   return createChat(userId, otherUserId, listingImage);
+}
+
+// PATCH /chats/:chatId/trade-status
+export async function patchTradeStatus(chatId: string, status: Chat['tradeStatus']): Promise<Chat> {
+  const userId = mockAuth.getId();
+  if (!userId) throw new ApiError(401, "Unauthorized");
+  return updateTradeStatus(chatId, userId, status);
 }

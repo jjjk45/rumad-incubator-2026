@@ -11,8 +11,8 @@ const User1: User = {
   school: "School of Arts and Sciences",
   campus: "Busch",
   classYear: "2028",
-  seller_rating: 4.3,
-  buyer_rating: 3.2,
+  sellerRating: 4.3,
+  buyerRating: 3.2,
   reviewCount: 3,
   isVerified: true,
   avatar: "jaydenRamirezAvatar3.28.26"
@@ -27,8 +27,8 @@ const User2: User = {
   school: "Rutgers University",
   campus: "Livingston",
   classYear: "2029",
-  seller_rating: 4.8,
-  buyer_rating: 3.5,
+  sellerRating: 4.8,
+  buyerRating: 3.5,
   reviewCount: 21,
   isVerified: true,
   avatar: "ayraAgrawalAvatar3.28.26"
@@ -43,8 +43,8 @@ const User3: User = {
   school: "School of Arts and Sciences",
   campus: "College Ave",
   classYear: "2028",
-  seller_rating: 4.5,
-  buyer_rating: 4.1,
+  sellerRating: 4.5,
+  buyerRating: 4.1,
   reviewCount: 12,
   isVerified: false,
   avatar: "udayaRajaAvatar3.28.26"
@@ -59,11 +59,11 @@ const User4: User = {
   school: "School of Arts and Sciences",
   campus: "Busch",
   classYear: "2028",
-  seller_rating: 4.5,
-  buyer_rating: 4.1,
+  sellerRating: 4.5,
+  buyerRating: 4.1,
   reviewCount: 12,
   isVerified: false,
-  avatar: "udayaRajaAvatar3.28.26"
+  avatar: "kinshukGoelAvatar3.28.26"
 };
 
 mockUsers.push(User1, User2, User3, User4);

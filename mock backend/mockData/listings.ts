@@ -1,7 +1,5 @@
 import { Listing } from "../../shared/types/all.ts";
 
-export const mockListings: Listing[] = [];
-
 const Listing1: Listing = {
   id: "L0001",
   title: "Calculus: Early Transcendentals (10th Ed)",
@@ -10,7 +8,7 @@ const Listing1: Listing = {
   condition: "Good",
   category: "Textbooks",
   images: ["calcTextbook_front.jpg", "calcTextbook_back.jpg"],
-  sellerID: "0001",
+  sellerId: "0001",
   campus: "Busch",
   timePosted: 1743328500000,
   status: "active",
@@ -26,7 +24,7 @@ const Listing2: Listing = {
   condition: "Good",
   category: "Appliances",
   images: ["miniFridge1.jpg", "miniFridge2.jpg", "miniFridge3.jpg"],
-  sellerID: "0011",
+  sellerId: "0011",
   campus: "Livingston",
   timePosted: 1743512400000,
   status: "active",
@@ -43,7 +41,7 @@ const Listing3: Listing = {
   condition: "Like New",
   category: "Electronics",
   images: ["ti84_front.jpg"],
-  sellerID: "0100",
+  sellerId: "0100",
   campus: "College Ave",
   timePosted: 1743156000000,
   status: "active",
@@ -59,7 +57,7 @@ const Listing4: Listing = {
   condition: "Fair",
   category: "Textbooks",
   images: ["orchem1.jpg", "orchem2.jpg"],
-  sellerID: "0101",
+  sellerId: "0101",
   campus: "Busch",
   timePosted: 1743594600000,
   status: "active",
@@ -75,7 +73,7 @@ const Listing5: Listing = {
   condition: "Good",
   category: "Furniture",
   images: ["loftBed1.jpg", "loftBed2.jpg"],
-  sellerID: "0001",
+  sellerId: "0001",
   campus: "Livingston",
   timePosted: 1743698700000,
   status: "pending",
@@ -91,7 +89,7 @@ const Listing6: Listing = {
   condition: "Like New",
   category: "Electronics",
   images: ["keychron1.jpg", "keychron2.jpg"],
-  sellerID: "0011",
+  sellerId: "0011",
   campus: "College Ave",
   timePosted: 1743760800000,
   status: "active",
@@ -108,7 +106,7 @@ const Listing7: Listing = {
   condition: "Fair",
   category: "Clothing & Accessories",
   images: ["jansport1.jpg"],
-  sellerID: "0100",
+  sellerId: "0100",
   campus: "Cook",
   timePosted: 1742911200000,
   status: "sold",
@@ -124,7 +122,7 @@ const Listing8: Listing = {
   condition: "Good",
   category: "Appliances",
   images: ["deskLamp1.jpg", "deskLamp2.jpg"],
-  sellerID: "0101",
+  sellerId: "0101",
   campus: "Busch",
   timePosted: 1743793200000,
   status: "active",
@@ -132,4 +130,4 @@ const Listing8: Listing = {
   isNegotiable: true,
 };
 
-mockListings.push(Listing1, Listing2, Listing3, Listing4, Listing5, Listing6, Listing7, Listing8);
+export const mockListings: Listing[] = [Listing1, Listing2, Listing3, Listing4, Listing5, Listing6, Listing7, Listing8];

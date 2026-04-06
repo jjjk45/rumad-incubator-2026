@@ -1,10 +1,11 @@
-import { User, UserPublic } from "../../shared/types/all.ts";
+import { User, UserPublic, UpdateUserInput } from "../../shared/types/all.ts";
+import { ApiError } from "../api/errors.ts";
 import { mockUsers } from "../mockData/users.ts";
 
 const MOCK_DELAY_MS = 50; //simulate network time, we obviously wont use this in the real service
-async function delay() {
+function delay() {
   return new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
-} //just for mocking
+}
 
 // Returns full User by ID
 export async function getUserFullById(id: string): Promise<User | undefined> {
@@ -24,4 +25,12 @@ export async function getUserById(id: string): Promise<UserPublic | undefined> {
 export async function getAllUsers(): Promise<UserPublic[]> {
   await delay();
   return mockUsers.map(({ email, firstName, lastName, location, ...publicFields }) => publicFields);
+}
+
+export async function updateUser(id: string, input: UpdateUserInput): Promise<User> {
+  await delay();
+  const index = mockUsers.findIndex((u) => u.id === id);
+  if (index === -1) throw new ApiError(404, `User ${id} not found`);
+  mockUsers[index] = { ...mockUsers[index], ...input };
+  return mockUsers[index];
 }

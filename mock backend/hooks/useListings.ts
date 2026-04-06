@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
-import { Listing } from "../../shared/types/all.ts";
+import { useCallback, useEffect, useState } from "react";
+import { Listing, CreateListingInput, UpdateListingInput } from "../../shared/types/all.ts";
 import {
   fetchAllListings,
   fetchListingById,
   fetchListingsByCategory,
   fetchListingsBySeller,
+  fetchMyListings,
+  postCreateListing,
+  patchListing,
+  deleteListingById,
 } from "../api/listingsApi.ts";
 import { ApiError } from "../api/errors.ts";
-import { useAuth } from "./authHook.ts";
 
 export function useAllListings() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -70,18 +73,76 @@ export function useListingsBySeller(sellerId: string) {
 }
 
 export function useMyListings() {
-  const { userId } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    fetchListingsBySeller(userId)
+    fetchMyListings()
       .then(setListings)
       .catch(setError)
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, []);
 
-  return { listings, loading, error, isUnauthorized: !userId };
+  return { listings, loading, error, isUnauthorized: error?.status === 401 };
+}
+
+export function useCreateListing() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const create = useCallback(async (input: CreateListingInput): Promise<Listing> => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await postCreateListing(input);
+    } catch (err) {
+      setError(err as ApiError);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { create, loading, error };
+}
+
+export function useUpdateListing() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const update = useCallback(async (id: string, input: UpdateListingInput): Promise<Listing> => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await patchListing(id, input);
+    } catch (err) {
+      setError(err as ApiError);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { update, loading, error };
+}
+
+export function useDeleteListing() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const remove = useCallback(async (id: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await deleteListingById(id);
+    } catch (err) {
+      setError(err as ApiError);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { remove, loading, error };
 }
