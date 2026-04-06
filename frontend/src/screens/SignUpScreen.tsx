@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase'
 
 import {
   View,
@@ -39,32 +40,51 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showClassPicker, setShowClassPicker] = useState(false);
 
-  const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password) return
-    if (password !== confirmPassword) return
-    setIsLoading(true)
-    try {
-      const response = await fetch(`${API_URL}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          university: classYear
-        })
-      })
-      const data = await response.json()
-      console.log('Response:', response.status, data)
-      if (!response.ok) throw new Error(data.error)
-      await onSignUp({ firstName, lastName, email, password, classYear })
-    } catch (err: any) {
-      console.log('Error:', err.message)
-      await onSignUp({ firstName, lastName, email, password, classYear })
-    } finally {
-      setIsLoading(false)
-    }
+const handleSignUp = async () => {
+  if (!firstName || !lastName || !email) {
+    Alert.alert('Missing Fields', 'Please fill all fields')
+    return
   }
+
+  const normalizedEmail = email.trim().toLowerCase()
+
+  if (
+    !normalizedEmail.endsWith('@rutgers.edu') &&
+    !normalizedEmail.endsWith('@scarletmail.rutgers.edu')
+  ) {
+    Alert.alert('Invalid Email', 'Please use your Rutgers email')
+    return
+  }
+
+  setIsLoading(true)
+
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        shouldCreateUser: true,
+      },
+    })
+
+    if (error) throw error
+
+    Alert.alert('OTP Sent', 'Check your email for the verification code')
+
+    // Move to next screen (OTP screen)
+    onSignUp({
+      firstName,
+      lastName,
+      email: normalizedEmail,
+      classYear,
+    })
+
+  } catch (err: any) {
+    console.log('Error:', err.message)
+    Alert.alert('Error', err.message || 'Failed to send OTP')
+  } finally {
+    setIsLoading(false)
+  }
+}
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
