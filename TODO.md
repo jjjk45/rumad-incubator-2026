@@ -1,0 +1,4 @@
+- [ ] Implement chat page
+    - [X] Build the architecture
+    - [ ] Fix the crashing error
+- [ ] Implement page to enter the OTP code
