@@ -1,9 +1,9 @@
-import { Chat, ChatLocal } from "../../shared/types/all.ts";
-import { mockChats } from "../mockData/chat.ts";
-import { mockMessages } from "../mockData/messages.ts";
-import { getUserById } from "./userService.ts";
-import { ApiError } from "../api/errors.ts";
-import { generateId } from "../utils/generateId.ts";
+import { Chat, ChatLocal } from "../../shared/types/all";
+import { mockChats } from "../mockData/chat";
+import { mockMessages } from "../mockData/messages";
+import { getUserById } from "./userService";
+import { ApiError } from "../api/errors";
+import { generateId } from "../utils/generateId";
 
 const MOCK_DELAY_MS = 50; // simulate network time, we obviously wont use this in the real service
 function delay() {
@@ -81,6 +81,6 @@ export async function updateTradeStatus(
   if (chat.user1Id !== userId && chat.user2Id !== userId) {
     throw new ApiError(403, "Forbidden");
   }
-  chat.tradeStatus = status;
+  chatadeStatus = status;
   return chat;
 }

@@ -1,4 +1,4 @@
-import { Listing } from "../../shared/types/all.ts";
+import { Listing } from "../../shared/types/all";
 
 const Listing1: Listing = {
   id: "L0001",

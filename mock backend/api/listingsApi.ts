@@ -1,4 +1,4 @@
-import { Listing, CreateListingInput, UpdateListingInput } from "../../shared/types/all.ts";
+import { Listing, CreateListingInput, UpdateListingInput } from "../../shared/types/all";
 import {
   getAllListings,
   getListingById,
@@ -7,9 +7,9 @@ import {
   createListing,
   updateListing,
   deleteListing,
-} from "../services/listingService.ts";
-import { ApiError } from "./errors.ts";
-import { mockAuth } from "../services/mockAuth.ts";
+} from "../services/listingService";
+import { ApiError } from "./errors";
+import { mockAuth } from "../services/mockAuth";
 
 // GET /listings
 export async function fetchAllListings(): Promise<Listing[]> {

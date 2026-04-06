@@ -1,13 +1,13 @@
-import { Chat, ChatLocal } from "../../shared/types/all.ts";
+import { Chat, ChatLocal } from "../../shared/types/all";
 import {
   getChatsForUser,
   getChatById,
   getChatWithUser,
   createChat,
   updateTradeStatus,
-} from "../services/chatService.ts";
-import { ApiError } from "./errors.ts";
-import { mockAuth } from "../services/mockAuth.ts";
+} from "../services/chatService";
+import { ApiError } from "./errors";
+import { mockAuth } from "../services/mockAuth";
 
 // GET /chats
 export async function fetchChatsForUser(): Promise<ChatLocal[]> {

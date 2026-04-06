@@ -1,7 +1,7 @@
-import { Listing, CreateListingInput, UpdateListingInput } from "../../shared/types/all.ts";
-import { mockListings } from "../mockData/listings.ts";
-import { generateId } from "../utils/generateId.ts";
-import { ApiError } from "../api/errors.ts";
+import { Listing, CreateListingInput, UpdateListingInput } from "../../shared/types/all";
+import { mockListings } from "../mockData/listings";
+import { generateId } from "../utils/generateId";
+import { ApiError } from "../api/errors";
 
 const MOCK_DELAY_MS = 50;//simulate network time, we obviously wont use this in the real service
 function delay() {

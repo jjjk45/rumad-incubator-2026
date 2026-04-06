@@ -1,4 +1,4 @@
-import { User } from "../../shared/types/all.ts";
+import { User } from "../../shared/types/all";
 
 export const mockUsers: User[] = [];
 

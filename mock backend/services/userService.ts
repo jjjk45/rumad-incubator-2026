@@ -1,6 +1,6 @@
-import { User, UserPublic, UpdateUserInput } from "../../shared/types/all.ts";
-import { ApiError } from "../api/errors.ts";
-import { mockUsers } from "../mockData/users.ts";
+import { User, UserPublic, UpdateUserInput } from "../../shared/types/all";
+import { ApiError } from "../api/errors";
+import { mockUsers } from "../mockData/users";
 
 const MOCK_DELAY_MS = 50; //simulate network time, we obviously wont use this in the real service
 function delay() {

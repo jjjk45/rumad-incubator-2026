@@ -1,4 +1,4 @@
-import { Chat } from "../../shared/types/all.ts";
+import { Chat } from "../../shared/types/all";
 
 const Chat1: Chat = {
   id: "CH0001",
