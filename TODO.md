@@ -1,4 +1,5 @@
-- [ ] Implement chat page
+## RUMAD Task List:
+- [X] Implement chat page
     - [X] Build the architecture
-    - [ ] Fix the crashing error
+    - [X] Fix the crashing error
 - [ ] Implement page to enter the OTP code
