@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -143,20 +143,11 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [classYear, setClassYear] = useState('Senior');
   const [isLoading, setIsLoading] = useState(false);
   const [showClassPicker, setShowClassPicker] = useState(false);
-  const [step, setStep] = useState<'signup' | 'otp'>('signup');
-  const [otp, setOtp] = useState('');
 
-  const isValidEmail = (e: string) =>
-    e.trim().toLowerCase().endsWith(VALID_EMAIL_DOMAIN);
-  const isValidPassword = (p: string) => p.length >= 8;
-  const isFormValid =
-    !!firstName.trim() &&
-    !!lastName.trim() &&
-    isValidEmail(email) &&
-    isValidPassword(password) &&
-    password === confirmPassword;
+  // OTP state
+  const [step, setStep] = useState<'signup' | 'otp'>('signup')
+  const [otp, setOtp] = useState('')
 
-  // Step 1: create profile + send OTP via backend
   const handleSignUp = async () => {
     if (!isFormValid) return;
     setIsLoading(true);
@@ -295,7 +286,7 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     );
   }
 
-  // ── Sign up screen ──────────────────────────────────────────────────────────
+  // Sign Up Screen (unchanged)
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
