@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Colors, BorderRadius, Shadows } from '../constants/colors';
-import type { TabRoute } from '../types';
+import type { TabRoute } from '../types/index';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

@@ -21,6 +21,7 @@ interface ItemDetailsScreenProps {
   onOfferTrade: () => void;
   onViewProfile: () => void;
   onReport: () => void;
+  onMessageSeller: () => void;
 }
 
 export function ItemDetailsScreen({
@@ -30,6 +31,7 @@ export function ItemDetailsScreen({
   onOfferTrade,
   onViewProfile,
   onReport,
+  onMessageSeller,
 }: ItemDetailsScreenProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -159,6 +161,16 @@ export function ItemDetailsScreen({
             <Text style={styles.tradeIcon}>🔄</Text>
             <Text style={styles.tradeButtonText}>Offer Trade</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tradeButton, { backgroundColor: Colors.surfaceAlt, borderWidth: 1, borderColor: Colors.border }]}
+            onPress={onMessageSeller}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.tradeIcon}>💬</Text>
+            <Text style={[styles.tradeButtonText, { color: Colors.textPrimary }]}>Message Seller</Text>
+          </TouchableOpacity>
+
 
           <View style={styles.verificationList}>
             <View style={styles.verificationItem}>
