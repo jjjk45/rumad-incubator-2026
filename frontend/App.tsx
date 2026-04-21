@@ -14,6 +14,8 @@ import {
   ItemDetailsScreen,
   PostItemScreen,
   AccountScreen,
+  ActivityScreen,
+  ChatDetailScreen,
 } from './src/screens';
 
 type Screen =
@@ -24,13 +26,15 @@ type Screen =
   | 'itemDetails'
   | 'postItem'
   | 'account'
-  | 'activity';
+  | 'activity'
+  | 'chatDetail';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [activeTab, setActiveTab] = useState<TabRoute>('Explore');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
   // Mock current user
   const currentUser: User = {
@@ -92,7 +96,10 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if (currentScreen === 'itemDetails') {
+    if (currentScreen === 'chatDetail') {
+      setCurrentScreen('activity');
+      setActiveChatId(null);
+    } else if (currentScreen === 'itemDetails') {
       setCurrentScreen('home');
     } else if (currentScreen === 'postItem') {
       setCurrentScreen('home');
@@ -160,6 +167,10 @@ export default function App() {
             onOfferTrade={() => console.log('Offer trade')}
             onViewProfile={() => console.log('View profile')}
             onReport={() => console.log('Report')}
+            onMessageSeller={() => {
+              setActiveChatId('conv-1'); // Mock chat ID
+              setCurrentScreen('chatDetail');
+            }}
           />
         ) : null;
 
@@ -173,25 +184,38 @@ export default function App() {
           <AccountScreen
             user={currentUser}
             onEditProfile={() => console.log('Edit profile')}
-            onViewAllChats={() => console.log('View all chats')}
-            onChatPress={(chat: Chat) => console.log('Chat:', chat)}
+            onViewAllChats={() => {
+              setCurrentScreen('activity');
+              setActiveTab('Activity');
+            }}
+            onChatPress={(chat: any) => {
+              setActiveChatId(chat.id);
+              setCurrentScreen('chatDetail');
+            }}
             onListingPress={handleListingPress}
             onSettingsPress={() => console.log('Settings')}
           />
         );
 
       case 'activity':
-        // For now, show account screen as placeholder
         return (
-          <AccountScreen
-            user={currentUser}
-            onEditProfile={() => console.log('Edit profile')}
-            onViewAllChats={() => console.log('View all chats')}
-            onChatPress={(chat: Chat) => console.log('Chat:', chat)}
-            onListingPress={handleListingPress}
-            onSettingsPress={() => console.log('Settings')}
+          <ActivityScreen
+            activeTab={activeTab}
+            onTabPress={handleTabPress}
+            onConversationPress={(chatId) => {
+              setActiveChatId(chatId);
+              setCurrentScreen('chatDetail');
+            }}
           />
         );
+
+      case 'chatDetail':
+        return activeChatId ? (
+          <ChatDetailScreen
+            chatId={activeChatId}
+            onBack={handleBack}
+          />
+        ) : null;
 
       default:
         return <LandingScreen onGetStarted={handleGetStarted} />;
@@ -204,7 +228,8 @@ export default function App() {
     (currentScreen === 'home' ||
       currentScreen === 'postItem' ||
       currentScreen === 'activity' ||
-      currentScreen === 'account');
+      currentScreen === 'account' ||
+      currentScreen === 'chatDetail');
 
   return (
     <View style={styles.container}>
