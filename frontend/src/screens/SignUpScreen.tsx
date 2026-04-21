@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ interface SignUpScreenProps {
     firstName: string;
     lastName: string;
     email: string;
+    password: string;
     classYear: string;
   }) => void;
   onSignIn: () => void;
@@ -148,6 +149,19 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [step, setStep] = useState<'signup' | 'otp'>('signup')
   const [otp, setOtp] = useState('')
 
+  const isValidEmail = (value: string) =>
+    value.trim().toLowerCase().endsWith(VALID_EMAIL_DOMAIN);
+
+  const isValidPassword = (value: string) => value.length >= 8;
+
+  const isFormValid =
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    isValidEmail(email) &&
+    isValidPassword(password) &&
+    password === confirmPassword &&
+    classYear.length > 0;
+
   const handleSignUp = async () => {
     if (!isFormValid) return;
     setIsLoading(true);
@@ -206,6 +220,7 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
+        password,
         classYear,
       });
     } catch (err: any) {
