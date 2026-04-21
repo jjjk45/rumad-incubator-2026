@@ -34,32 +34,20 @@ export default function App() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [activeTab, setActiveTab] = useState<TabRoute>('Explore');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
-  // Mock current user
-  const currentUser: User = {
-    id: '1',
-    firstName: 'Alex',
-    lastName: 'Rivera',
-    email: 'alex.rivera@rutgers.edu',
-    university: 'Rutgers University',
-    classYear: 'Senior',
-    rating: 4.2,
-    reviewCount: 15,
-    isVerified: true,
-  };
-
-  // Navigation handlers
   const handleGetStarted = () => {
-    setCurrentScreen('signup');
+    setCurrentScreen('signin');
   };
 
-  const handleSignIn = (email: string, password: string) => {
-    console.log('Signing in:', email);
+  // Called by SignInScreen after Supabase OTP is verified successfully
+  const handleSignInSuccess = () => {
     setIsAuthenticated(true);
     setCurrentScreen('home');
   };
 
+  // Called by SignUpScreen after backend OTP is verified successfully
   const handleSignUp = (userData: {
     firstName: string;
     lastName: string;
@@ -67,7 +55,18 @@ export default function App() {
     password: string;
     classYear: string;
   }) => {
-    console.log('Signing up:', userData);
+    const newUser: User = {
+      id: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      university: 'Rutgers University',
+      classYear: userData.classYear,
+      rating: 0,
+      reviewCount: 0,
+      isVerified: true,
+    };
+    setCurrentUser(newUser);
     setIsAuthenticated(true);
     setCurrentScreen('home');
   };
@@ -75,18 +74,10 @@ export default function App() {
   const handleTabPress = (tab: TabRoute) => {
     setActiveTab(tab);
     switch (tab) {
-      case 'Explore':
-        setCurrentScreen('home');
-        break;
-      case 'Sell':
-        setCurrentScreen('postItem');
-        break;
-      case 'Activity':
-        setCurrentScreen('activity');
-        break;
-      case 'Account':
-        setCurrentScreen('account');
-        break;
+      case 'Explore':   setCurrentScreen('home');     break;
+      case 'Sell':      setCurrentScreen('postItem'); break;
+      case 'Activity':  setCurrentScreen('activity'); break;
+      case 'Account':   setCurrentScreen('account');  break;
     }
   };
 
@@ -101,10 +92,7 @@ export default function App() {
       setActiveChatId(null);
     } else if (currentScreen === 'itemDetails') {
       setCurrentScreen('home');
-    } else if (currentScreen === 'postItem') {
-      setCurrentScreen('home');
-      setActiveTab('Explore');
-    } else if (currentScreen === 'account') {
+    } else if (currentScreen === 'postItem' || currentScreen === 'account') {
       setCurrentScreen('home');
       setActiveTab('Explore');
     } else {
@@ -125,7 +113,18 @@ export default function App() {
     setActiveTab('Explore');
   };
 
-  // Render current screen
+  const displayUser: User = currentUser ?? {
+    id: '1',
+    firstName: 'Alex',
+    lastName: 'Rivera',
+    email: 'alex.rivera@rutgers.edu',
+    university: 'Rutgers University',
+    classYear: 'Senior',
+    rating: 4.2,
+    reviewCount: 15,
+    isVerified: true,
+  };
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'landing':
@@ -134,7 +133,7 @@ export default function App() {
       case 'signin':
         return (
           <SignInScreen
-            onSignIn={handleSignIn}
+            onSignInSuccess={handleSignInSuccess}
             onForgotPassword={() => console.log('Forgot password')}
             onCreateAccount={() => setCurrentScreen('signup')}
           />
@@ -175,20 +174,18 @@ export default function App() {
         ) : null;
 
       case 'postItem':
-        return (
-          <PostItemScreen onBack={handleBack} onPublish={handlePublish} />
-        );
+        return <PostItemScreen onBack={handleBack} onPublish={handlePublish} />;
 
       case 'account':
         return (
           <AccountScreen
-            user={currentUser}
+            user={displayUser}
             onEditProfile={() => console.log('Edit profile')}
             onViewAllChats={() => {
               setCurrentScreen('activity');
               setActiveTab('Activity');
             }}
-            onChatPress={(chat: any) => {
+            onChatPress={(chat: Chat) => {
               setActiveChatId(chat.id);
               setCurrentScreen('chatDetail');
             }}
@@ -222,14 +219,9 @@ export default function App() {
     }
   };
 
-  // Show bottom nav bar for authenticated screens
   const showBottomNav =
     isAuthenticated &&
-    (currentScreen === 'home' ||
-      currentScreen === 'postItem' ||
-      currentScreen === 'activity' ||
-      currentScreen === 'account' ||
-      currentScreen === 'chatDetail');
+    ['home', 'postItem', 'activity', 'account', 'chatDetail'].includes(currentScreen);
 
   return (
     <View style={styles.container}>
