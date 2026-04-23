@@ -13,8 +13,8 @@ import {
 import { Colors, Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { InputField, Button } from '../components';
 import { supabase } from '../lib/supabase';
+import { API_URL } from '../lib/api';
 
-const API_URL = 'https://rumad-backend-production.up.railway.app';
 const OTP_LENGTH = 8;
 
 interface SignUpScreenProps {
@@ -22,6 +22,7 @@ interface SignUpScreenProps {
     firstName: string;
     lastName: string;
     email: string;
+    password: string;
     classYear: string;
   }) => void;
   onSignIn: () => void;
@@ -186,40 +187,51 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     }
   };
 
+  // Verify OTP with Supabase first so the app receives a real session, then
+  // mark the profile as verified via the backend using that session.
   const handleVerifyOtp = async () => {
     if (otp.length !== OTP_LENGTH) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/users/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          token: otp,
-        }),
+      const normalizedEmail = email.trim().toLowerCase();
+
+      const { data: otpData, error: supabaseError } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: otp,
+        type: 'email',
       });
 
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      const accessToken = otpData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Verification succeeded but no session was created.');
+      }
+
+      const response = await fetch(`${API_URL}/users/verify-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+        }),
+      });
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Invalid code');
       }
 
-      const { error: supabaseError } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
-        token: otp,
-        type: 'email',
-      });
-
-      if (supabaseError) {
-        console.warn('Supabase session note:', supabaseError.message);
-      }
-
       onSignUp({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
+        password,
         classYear,
       });
     } catch (err: any) {
