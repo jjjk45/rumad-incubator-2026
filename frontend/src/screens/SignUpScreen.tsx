@@ -13,8 +13,8 @@ import {
 import { Colors, Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { InputField, Button } from '../components';
 import { supabase } from '../lib/supabase';
+import { API_URL } from '../lib/api';
 
-const API_URL = 'https://rumad-backend-production.up.railway.app';
 const OTP_LENGTH = 8;
 
 interface SignUpScreenProps {
@@ -186,40 +186,46 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     }
   };
 
-  // Step 2: verify OTP via backend, then establish Supabase session
+  // Step 2: verify OTP with Supabase, then mark the profile verified in the backend.
   const handleVerifyOtp = async () => {
     if (otp.length !== OTP_LENGTH) return;
     setIsLoading(true);
     try {
-      // Verify via backend (marks email_verified in profiles)
-      const response = await fetch(`${API_URL}/users/verify-otp`, {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Verify with Supabase first so the client gets a real session.
+      const { data: otpData, error: supabaseError } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: otp,
+        type: 'email',
+      });
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      const accessToken = otpData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Verification succeeded but no session was created.');
+      }
+
+      const response = await fetch(`${API_URL}/users/verify-email`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          token: otp,
+          email: normalizedEmail,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Invalid code');
 
-      // Also verify with Supabase directly to establish a real session
-      const { error: supabaseError } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
-        token: otp,
-        type: 'email',
-      });
-
-      // Note: if backend already verified it, Supabase token may be consumed.
-      // In that case we still proceed — the profile is verified in the DB.
-      if (supabaseError) {
-        console.warn('Supabase session note:', supabaseError.message);
-      }
-
       await onSignUp({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         classYear,
       });
