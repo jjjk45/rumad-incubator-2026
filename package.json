@@ -7,7 +7,8 @@
     "shared"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run start --workspace=frontend\""
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run start --workspace=frontend\"",
+    "dev:web:local": "concurrently \"npm run dev:local --workspace=backend\" \"npm run web:local --workspace=frontend\""
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.0",
