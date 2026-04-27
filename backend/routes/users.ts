@@ -21,7 +21,6 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'first_name, last_name, and email are required' })
   }
 
-  // 1. Upsert profile row first (onConflict requires unique constraint on email)
   const { error: upsertError } = await supabase
     .from('profiles')
     .upsert(
@@ -31,7 +30,6 @@ router.post('/', async (req: Request, res: Response) => {
 
   if (upsertError) return res.status(500).json({ error: upsertError.message })
 
-  // 2. Send OTP — creates Supabase Auth user if they don't exist yet
   const { error: otpError } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -53,7 +51,6 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'email and token are required' })
   }
 
-  // 1. Verify OTP with Supabase Auth
   const { data, error: verifyError } = await supabase.auth.verifyOtp({
     email,
     token,
@@ -62,7 +59,6 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
 
   if (verifyError) return res.status(400).json({ error: 'Invalid or expired OTP' })
 
-  // 2. Mark profile as verified
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ email_verified: true })
