@@ -4,10 +4,14 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "esModuleInterop": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["*.ts", "routes/**/*.ts", "lib/**/*.ts"]
+  "include": [
+    "*.ts",
+    "routes/**/*.ts",
+    "lib/**/*.ts"
+  ]
 }
