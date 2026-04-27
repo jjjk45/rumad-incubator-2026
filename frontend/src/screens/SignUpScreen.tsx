@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,8 +31,6 @@ interface SignUpScreenProps {
 const CLASS_YEARS = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
 const VALID_EMAIL_DOMAIN = '@scarletmail.rutgers.edu';
 
-// ── OTP input: single hidden TextInput + pure View boxes for display ──────────
-// This pattern eliminates ALL Android tinting since no TextInput is ever visible.
 function OtpInput({
   value,
   onChange,
@@ -46,38 +44,38 @@ function OtpInput({
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 150);
+    const timer = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
   }, []);
 
   const focusedBoxIndex = isFocused ? Math.min(value.length, length - 1) : -1;
 
   return (
-    // Pressable area covers entire row to focus the hidden input on any tap
     <TouchableOpacity
       activeOpacity={1}
       onPress={() => inputRef.current?.focus()}
       style={otpStyles.row}
     >
-      {/* Hidden input — full size so the OS treats it as a real tappable target */}
       <TextInput
         ref={inputRef}
         value={value}
-        onChangeText={(text) => onChange(text.replace(/[^0-9]/g, '').slice(0, length))}
+        onChangeText={(text) =>
+          onChange(text.replace(/[^0-9]/g, '').slice(0, length))
+        }
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         keyboardType="number-pad"
         maxLength={length}
         caretHidden
         style={otpStyles.hiddenInput}
-        // Suppress ALL Android tinting
         underlineColorAndroid="transparent"
         selectionColor="transparent"
       />
 
-      {/* Visual boxes — pure Views, no TextInput, no tinting possible */}
       {Array.from({ length }).map((_, i) => {
         const char = value[i] ?? '';
         const isActive = focusedBoxIndex === i;
+
         return (
           <View
             key={i}
@@ -102,7 +100,6 @@ const otpStyles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   hiddenInput: {
-    // Covers the full row so the OS hit-test finds it, but visually invisible
     position: 'absolute',
     width: '100%',
     height: '100%',
@@ -134,7 +131,6 @@ const otpStyles = StyleSheet.create({
   },
 });
 
-// ── Main component ────────────────────────────────────────────────────────────
 export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -145,25 +141,25 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showClassPicker, setShowClassPicker] = useState(false);
 
-  // OTP state
-  const [step, setStep] = useState<'signup' | 'otp'>('signup')
-  const [otp, setOtp] = useState('')
+  const [step, setStep] = useState<'signup' | 'otp'>('signup');
+  const [otp, setOtp] = useState('');
 
   const isValidEmail = (value: string) =>
     value.trim().toLowerCase().endsWith(VALID_EMAIL_DOMAIN);
 
-  const isValidPassword = (value: string) => value.length >= 8;
+  const isValidPassword = (value: string) => value.trim().length >= 8;
 
   const isFormValid =
-    firstName.trim().length > 0 &&
-    lastName.trim().length > 0 &&
+    firstName.trim() !== '' &&
+    lastName.trim() !== '' &&
     isValidEmail(email) &&
     isValidPassword(password) &&
-    password === confirmPassword &&
-    classYear.length > 0;
+    confirmPassword.trim() !== '' &&
+    password === confirmPassword;
 
   const handleSignUp = async () => {
     if (!isFormValid) return;
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/users`, {
@@ -176,8 +172,13 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
           university: classYear,
         }),
       });
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to create account');
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create account');
+      }
+
       setStep('otp');
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -186,14 +187,15 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     }
   };
 
-  // Step 2: verify OTP with Supabase, then mark the profile verified in the backend.
+  // Verify OTP with Supabase first so the app receives a real session, then
+  // mark the profile as verified via the backend using that session.
   const handleVerifyOtp = async () => {
     if (otp.length !== OTP_LENGTH) return;
+
     setIsLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Verify with Supabase first so the client gets a real session.
       const { data: otpData, error: supabaseError } = await supabase.auth.verifyOtp({
         email: normalizedEmail,
         token: otp,
@@ -220,9 +222,12 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Invalid code');
 
-      await onSignUp({
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid code');
+      }
+
+      onSignUp({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: normalizedEmail,
@@ -237,7 +242,6 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     }
   };
 
-  // Resend: re-POST to /users (backend uses upsert so no duplicate error)
   const handleResend = async () => {
     setIsLoading(true);
     try {
@@ -251,8 +255,13 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
           university: classYear,
         }),
       });
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend code');
+      }
+
       Alert.alert('Sent!', 'A new code has been sent to your email.');
       setOtp('');
     } catch (err: any) {
@@ -262,7 +271,6 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     }
   };
 
-  // ── OTP screen ──────────────────────────────────────────────────────────────
   if (step === 'otp') {
     return (
       <KeyboardAvoidingView
@@ -297,7 +305,10 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => { setStep('signup'); setOtp(''); }}
+            onPress={() => {
+              setStep('signup');
+              setOtp('');
+            }}
             style={styles.backButton}
           >
             <Text style={styles.backText}>← Back to Sign Up</Text>
@@ -307,7 +318,6 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     );
   }
 
-  // Sign Up Screen (unchanged)
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -329,8 +339,20 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         </View>
 
         <View style={styles.form}>
-          <InputField label="First Name" placeholder="John" value={firstName} onChangeText={setFirstName} />
-          <InputField label="Last Name" placeholder="Smith" value={lastName} onChangeText={setLastName} />
+          <InputField
+            label="First Name"
+            placeholder="John"
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+
+          <InputField
+            label="Last Name"
+            placeholder="Smith"
+            value={lastName}
+            onChangeText={setLastName}
+          />
+
           <InputField
             label="Email"
             placeholder="abc123@scarletmail.rutgers.edu"
@@ -340,35 +362,69 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
             autoCapitalize="none"
             autoCorrect={false}
           />
+
           {email.length > 0 && !isValidEmail(email) && (
-            <Text style={styles.errorText}>Must be a @scarletmail.rutgers.edu address</Text>
+            <Text style={styles.errorText}>
+              Must be a @scarletmail.rutgers.edu address
+            </Text>
           )}
 
-          <InputField label="Password" placeholder="At least 8 characters" value={password} onChangeText={setPassword} secureTextEntry />
+          <InputField
+            label="Password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+
           {password.length > 0 && !isValidPassword(password) && (
-            <Text style={styles.errorText}>Password must be at least 8 characters</Text>
+            <Text style={styles.errorText}>
+              Password must be at least 8 characters
+            </Text>
           )}
 
-          <InputField label="Confirm Password" placeholder="Must match password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+          <InputField
+            label="Confirm Password"
+            placeholder="Must match password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+
           {confirmPassword.length > 0 && password !== confirmPassword && (
             <Text style={styles.errorText}>Passwords do not match</Text>
           )}
 
           <View style={styles.selectContainer}>
             <Text style={styles.selectLabel}>Class Year</Text>
-            <TouchableOpacity style={styles.select} onPress={() => setShowClassPicker(!showClassPicker)}>
+            <TouchableOpacity
+              style={styles.select}
+              onPress={() => setShowClassPicker(!showClassPicker)}
+            >
               <Text style={styles.selectValue}>{classYear}</Text>
               <Text style={styles.chevron}>▼</Text>
             </TouchableOpacity>
+
             {showClassPicker && (
               <View style={styles.pickerOptions}>
                 {CLASS_YEARS.map((year) => (
                   <TouchableOpacity
                     key={year}
-                    style={[styles.pickerOption, classYear === year && styles.pickerOptionActive]}
-                    onPress={() => { setClassYear(year); setShowClassPicker(false); }}
+                    style={[
+                      styles.pickerOption,
+                      classYear === year && styles.pickerOptionActive,
+                    ]}
+                    onPress={() => {
+                      setClassYear(year);
+                      setShowClassPicker(false);
+                    }}
                   >
-                    <Text style={[styles.pickerOptionText, classYear === year && styles.pickerOptionTextActive]}>
+                    <Text
+                      style={[
+                        styles.pickerOptionText,
+                        classYear === year && styles.pickerOptionTextActive,
+                      ]}
+                    >
                       {year}
                     </Text>
                   </TouchableOpacity>
@@ -399,35 +455,162 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: 60, paddingBottom: 40 },
-  otpContent: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: 100, paddingBottom: 40 },
-  otpTitle: { fontSize: 52, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2, lineHeight: 52, marginBottom: Spacing.lg },
-  otpSubtitle: { fontSize: 16, color: Colors.textSecondary, marginBottom: Spacing.xxl, lineHeight: 24 },
-  otpEmail: { fontWeight: '600', color: Colors.textPrimary },
-  resendButton: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.lg },
-  resendText: { fontSize: 16, color: Colors.textSecondary },
-  resendLink: { fontSize: 16, fontWeight: '600', color: Colors.primary },
-  backButton: { alignItems: 'center', marginTop: Spacing.lg },
-  backText: { fontSize: 16, color: Colors.textMuted },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xxl },
-  headlineContainer: { flex: 1 },
-  headline: { fontSize: 64, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2.4, lineHeight: 52, textShadowColor: 'rgba(0, 0, 0, 0.25)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 4 },
-  logoContainer: { width: 100, height: 100, transform: [{ rotate: '180deg' }] },
-  logo: { fontSize: 80 },
-  form: { gap: Spacing.lg },
-  errorText: { fontSize: 13, color: '#E53935', marginTop: -Spacing.sm, marginLeft: 2 },
-  selectContainer: { width: '100%' },
-  selectLabel: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  select: { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: BorderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, minHeight: 48 },
-  selectValue: { fontSize: 16, color: Colors.textPrimary },
-  chevron: { fontSize: 12, color: Colors.textMuted },
-  pickerOptions: { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: BorderRadius.md, marginTop: Spacing.xs, overflow: 'hidden' },
-  pickerOption: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  pickerOptionActive: { backgroundColor: Colors.primaryLight },
-  pickerOptionText: { fontSize: 16, color: Colors.textPrimary },
-  pickerOptionTextActive: { color: Colors.primary, fontWeight: '600' },
-  button: { marginTop: Spacing.md, ...Shadows.medium },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.xxxl },
-  footerText: { fontSize: 16, color: Colors.textSecondary },
-  footerLink: { fontSize: 16, fontWeight: '600', color: Colors.primary },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  otpContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 100,
+    paddingBottom: 40,
+  },
+  otpTitle: {
+    fontSize: 52,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: -2,
+    lineHeight: 52,
+    marginBottom: Spacing.lg,
+  },
+  otpSubtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xxl,
+    lineHeight: 24,
+  },
+  otpEmail: {
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  resendButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+  },
+  resendText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  resendLink: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  backButton: {
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+  },
+  backText: {
+    fontSize: 16,
+    color: Colors.textMuted,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xxl,
+  },
+  headlineContainer: {
+    flex: 1,
+  },
+  headline: {
+    fontSize: 64,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: -2.4,
+    lineHeight: 52,
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 4,
+  },
+  logoContainer: {
+    width: 100,
+    height: 100,
+    transform: [{ rotate: '180deg' }],
+  },
+  logo: {
+    fontSize: 80,
+  },
+  form: {
+    gap: Spacing.lg,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#E53935',
+    marginTop: -Spacing.sm,
+    marginLeft: 2,
+  },
+  selectContainer: {
+    width: '100%',
+  },
+  selectLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  select: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    minHeight: 48,
+  },
+  selectValue: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  chevron: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  pickerOptions: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.xs,
+    overflow: 'hidden',
+  },
+  pickerOption: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  pickerOptionActive: {
+    backgroundColor: Colors.primaryLight,
+  },
+  pickerOptionText: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  pickerOptionTextActive: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  button: {
+    marginTop: Spacing.md,
+    ...Shadows.medium,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: Spacing.xxxl,
+  },
+  footerText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  footerLink: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
 });
