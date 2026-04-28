@@ -1,6 +1,10 @@
 # dependencies
 node_modules/
 
+# Mac Garbage
+.DS_Store/
+.DS_Store
+
 # Expo
 .expo/
 dist/

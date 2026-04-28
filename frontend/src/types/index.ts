@@ -1,6 +1,10 @@
-/**
- * Type definitions for RU Thrift App
- */
+export type TabRoute = 'Explore' | 'Sell' | 'Activity' | 'Account';
+
+export interface NavItem {
+  route: TabRoute;
+  label: string;
+  icon: string;
+}
 
 export interface User {
   id: string;
@@ -12,7 +16,12 @@ export interface User {
   rating: number;
   reviewCount: number;
   isVerified: boolean;
-  avatar?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  image: string;
 }
 
 export interface Listing {
@@ -20,14 +29,14 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
-  condition: 'Like New' | 'Good' | 'Fair';
+  condition: string;
   category: string;
   images: string[];
   seller: User;
   location: string;
   distance: string;
   postedAt: string;
-  status: 'active' | 'sold' | 'pending';
+  status: string;
   isOpenToTrade: boolean;
   isNegotiable: boolean;
   badge?: string;
@@ -42,18 +51,4 @@ export interface Chat {
   tradeStatus?: string;
   listingImage?: string;
   unreadCount: number;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  image: string;
-}
-
-export type TabRoute = 'Explore' | 'Sell' | 'Activity' | 'Account';
-
-export interface NavItem {
-  route: TabRoute;
-  label: string;
-  icon: string;
 }

@@ -1,9 +1,23 @@
 {
-"name": "rumad-incubator-2026",
-"private": true,
-"workspaces": [
-"frontend",
-"backend",
-"shared"
-]
+  "name": "rumad-incubator-2026",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run start --workspace=frontend\"",
+    "dev:web:local": "concurrently \"npm run dev:local --workspace=backend\" \"npm run web:local --workspace=frontend\""
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
+    "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
+    "dotenv": "^17.4.2",
+    "expo": "^55.0.11",
+    "nodemailer": "^8.0.5"
+  }
 }
