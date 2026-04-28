@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -195,7 +194,7 @@ export function SignInScreen({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.headlineContainer}>
             <Text style={styles.headline}>Sign In</Text>
@@ -234,17 +233,17 @@ export function SignInScreen({
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: 60 },
+  content: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: 60 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xxxl },
   headlineContainer: { flex: 1 },
-  headline: { fontSize: 64, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2.4, lineHeight: 52, textShadowColor: 'rgba(0, 0, 0, 0.25)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 4 },
+  headline: { fontSize: 64, padding: 10, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2.4, textShadowColor: 'rgba(0, 0, 0, 0.25)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 4 },
   logoContainer: { width: 100, height: 100, transform: [{ rotate: '180deg' }] },
   logo: { fontSize: 80 },
   form: { gap: Spacing.lg },

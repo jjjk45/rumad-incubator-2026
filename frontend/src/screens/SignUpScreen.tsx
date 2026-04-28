@@ -317,14 +317,11 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <View style={styles.header}>
           <View style={styles.headlineContainer}>
-            <Text style={styles.headline}>Create</Text>
-            <Text style={styles.headline}>Account</Text>
-          </View>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logo}>🪑</Text>
+            <Text style={styles.headline}>Create Account</Text>
           </View>
         </View>
 
@@ -401,8 +398,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: 60, paddingBottom: 40 },
   otpContent: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: 100, paddingBottom: 40 },
-  otpTitle: { fontSize: 52, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2, lineHeight: 52, marginBottom: Spacing.lg },
-  otpSubtitle: { fontSize: 16, color: Colors.textSecondary, marginBottom: Spacing.xxl, lineHeight: 24 },
+  otpTitle: { fontSize: 52, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2, marginBottom: Spacing.lg },
+  otpSubtitle: { fontSize: 16, color: Colors.textSecondary, marginBottom: Spacing.xxl },
   otpEmail: { fontWeight: '600', color: Colors.textPrimary },
   resendButton: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.lg },
   resendText: { fontSize: 16, color: Colors.textSecondary },
@@ -411,7 +408,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, color: Colors.textMuted },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xxl },
   headlineContainer: { flex: 1 },
-  headline: { fontSize: 64, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2.4, lineHeight: 52, textShadowColor: 'rgba(0, 0, 0, 0.25)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 4 },
+  headline: { fontSize: 64, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -2.4, textShadowColor: 'rgba(0, 0, 0, 0.25)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 4 },
   logoContainer: { width: 100, height: 100, transform: [{ rotate: '180deg' }] },
   logo: { fontSize: 80 },
   form: { gap: Spacing.lg },
