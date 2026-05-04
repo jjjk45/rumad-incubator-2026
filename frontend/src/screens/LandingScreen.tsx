@@ -25,6 +25,7 @@ export function LandingScreen({ onGetStarted }: LandingScreenProps) {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         {/* Avatar Stack */}
         <View style={styles.avatarStack}>

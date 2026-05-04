@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { mockAuth } from "../services/mockAuth.ts";
+import { mockAuth } from "../services/mockAuth";
 
 interface AuthContextValue {
   userId: string | null;

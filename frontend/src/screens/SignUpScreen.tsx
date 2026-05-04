@@ -327,6 +327,7 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <View style={styles.header}>
           <View style={styles.headlineContainer}>
