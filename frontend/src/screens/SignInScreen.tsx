@@ -96,7 +96,7 @@ export function SignInScreen({
         .from('profiles')
         .select('email')
         .eq('email', email.trim().toLowerCase())
-        .single();
+        .maybeSingle();
 
       if (lookupError || !data) {
         Alert.alert(

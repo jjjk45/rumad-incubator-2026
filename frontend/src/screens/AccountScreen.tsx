@@ -1,90 +1,132 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
+  Alert,
   Image,
 } from 'react-native';
 import { Colors, Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { TopAppBar } from '../components';
-import type { User, Chat, Listing } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AccountScreenProps {
-  user: User;
   onEditProfile: () => void;
-  onViewAllChats: () => void;
-  onChatPress: (chat: Chat) => void;
-  onListingPress: (listing: Listing) => void;
   onSettingsPress: () => void;
 }
 
-const MOCK_CHATS: Chat[] = [
-  {
-    id: '1',
-    otherUser: { id: '2', firstName: 'Sarah', lastName: 'Jenkins', email: '', university: 'Rutgers', classYear: 'Junior', rating: 4.8, reviewCount: 23, isVerified: true },
-    lastMessage: '"Sounds good, I\'ll...',
-    lastMessageTime: '2 min',
-    isActiveTrade: true,
-    tradeStatus: 'Meeting at\nThe Yard',
-    listingImage: '💻',
-    unreadCount: 1,
-  },
-  {
-    id: '2',
-    otherUser: { id: '3', firstName: 'Mark', lastName: 'Thompson', email: '', university: 'Rutgers', classYear: 'Senior', rating: 4.5, reviewCount: 12, isVerified: true },
-    lastMessage: 'Is the biology textbook still available?',
-    lastMessageTime: 'Yesterday',
-    isActiveTrade: false,
-    unreadCount: 0,
-  },
-];
-
-const MOCK_LISTINGS: Listing[] = [
-  {
-    id: '1',
-    title: 'Designer Desk Lamp',
-    description: 'Mid-century modern lamp',
-    price: 45,
-    condition: 'Like New',
-    category: 'Home & Kitchen',
-    images: [],
-    seller: { id: '1', firstName: 'Alex', lastName: 'Rivera', email: '', university: 'Rutgers', classYear: 'Senior', rating: 4.2, reviewCount: 15, isVerified: true },
-    location: 'College Ave',
-    distance: '0.2 miles',
-    postedAt: '1 day ago',
-    status: 'active',
-    isOpenToTrade: false,
-    isNegotiable: true,
-  },
-  {
-    id: '2',
-    title: 'Organic Cotton Tote Set',
-    description: 'Eco-friendly tote bags',
-    price: 12,
-    condition: 'Like New',
-    category: 'Accessories',
-    images: [],
-    seller: { id: '1', firstName: 'Alex', lastName: 'Rivera', email: '', university: 'Rutgers', classYear: 'Senior', rating: 4.2, reviewCount: 15, isVerified: true },
-    location: 'College Ave',
-    distance: '0.2 miles',
-    postedAt: '3 days ago',
-    status: 'active',
-    isOpenToTrade: true,
-    isNegotiable: false,
-    badge: 'Eco Choice',
-  },
-];
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  university: string | null;
+  class_year: string | null;
+  is_verified: boolean | null;
+  username: string | null;
+  avatar_url: string | null;
+}
 
 export function AccountScreen({
-  user,
   onEditProfile,
-  onViewAllChats,
-  onChatPress,
-  onListingPress,
   onSettingsPress,
 }: AccountScreenProps) {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const loadAccountData = async () => {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) throw new Error(userError.message);
+      if (!user) throw new Error('No signed-in user found.');
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select(
+          'id, first_name, last_name, email, university, class_year, is_verified, username, avatar_url'
+        )
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw new Error(profileError.message);
+      if (!profileData) throw new Error('Profile row was not found for this user.');
+
+      console.log('Loaded account profile:', profileData);
+
+      setProfile(profileData as Profile);
+    } catch (err: any) {
+      console.log('Account load error:', err.message);
+      setErrorMessage(err.message || 'Could not load account.');
+      setProfile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAccountData();
+  }, []);
+
+  const handleToggleNotifications = () => {
+    setNotificationsEnabled((current) => {
+      const next = !current;
+
+      Alert.alert(
+        next ? 'Notifications enabled' : 'Notifications disabled',
+        next
+          ? 'You will receive RU Thrift notifications.'
+          : 'You will not receive RU Thrift notifications.'
+      );
+
+      return next;
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Loading account...</Text>
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorTitle}>Could not load profile</Text>
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+        <TouchableOpacity style={styles.primaryButton} onPress={loadAccountData}>
+          <Text style={styles.primaryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const fullName =
+    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
+    'RU Thrift User';
+
+  const university = profile.university || 'Rutgers University';
+  const classYear = profile.class_year || 'Student';
+  const email = profile.email || 'No email found';
+  const username = profile.username ? `@${profile.username}` : '@username';
+  const verified = profile.is_verified === true;
+  const avatarUrl = profile.avatar_url;
+
   return (
     <View style={styles.container}>
       <TopAppBar
@@ -92,6 +134,8 @@ export function AccountScreen({
         showSearch={false}
         showNotification
         showProfile={false}
+        notificationsEnabled={notificationsEnabled}
+        onNotificationPress={handleToggleNotifications}
       />
 
       <ScrollView
@@ -99,45 +143,62 @@ export function AccountScreen({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Section */}
         <View style={styles.profileSection}>
-          {/* Avatar */}
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarEmoji}>👨‍🎓</Text>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarEmoji}>👨‍🎓</Text>
+              )}
             </View>
           </View>
 
-          {/* User Info */}
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>Alex Rivera</Text>
-            <Text style={styles.userMeta}>Rutgers University • Senior</Text>
+            <Text style={styles.userName}>{fullName}</Text>
+            <Text style={styles.usernameText}>{username}</Text>
 
-            {/* Rating & Verification */}
+            <Text style={styles.userMeta}>
+              {university} • {classYear}
+            </Text>
+            <Text style={styles.emailText}>{email}</Text>
+
             <View style={styles.badgeRow}>
               <View style={styles.ratingBadge}>
                 <Text style={styles.ratingIcon}>⭐</Text>
-                <Text style={styles.ratingText}>4.2</Text>
+                <Text style={styles.ratingText}>New</Text>
               </View>
+
               <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedIcon}>✓</Text>
-                <Text style={styles.verifiedText}>Verified Student</Text>
+                <Text style={styles.verifiedIcon}>{verified ? '✓' : '!'}</Text>
+                <Text style={styles.verifiedText}>
+                  {verified ? 'Verified Student' : 'Not Verified'}
+                </Text>
+              </View>
+
+              <View style={styles.verifiedBadge}>
+                <Text style={styles.verifiedIcon}>
+                  {notificationsEnabled ? '🔔' : '🔕'}
+                </Text>
+                <Text style={styles.verifiedText}>
+                  {notificationsEnabled ? 'Notifications On' : 'Notifications Off'}
+                </Text>
               </View>
             </View>
 
-            {/* Action Buttons */}
             <View style={styles.actionButtons}>
               <TouchableOpacity
-                style={styles.editProfileButton}
+                style={styles.primaryButton}
                 onPress={onEditProfile}
                 activeOpacity={0.8}
               >
-                <View style={styles.editProfileShadow} />
-                <Text style={styles.editProfileText}>Edit Profile</Text>
+                <Text style={styles.primaryButtonText}>Edit Profile</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.settingsButton}
                 onPress={onSettingsPress}
+                activeOpacity={0.8}
               >
                 <Text style={styles.settingsIcon}>⚙️</Text>
               </TouchableOpacity>
@@ -145,129 +206,6 @@ export function AccountScreen({
           </View>
         </View>
 
-        {/* Recent Chats Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Chats</Text>
-            <TouchableOpacity onPress={onViewAllChats}>
-              <Text style={styles.seeAll}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.chatsContainer}>
-            {MOCK_CHATS.map((chat) => (
-              <TouchableOpacity
-                key={chat.id}
-                style={[
-                  styles.chatCard,
-                  chat.isActiveTrade && styles.chatCardActive,
-                ]}
-                onPress={() => onChatPress(chat)}
-                activeOpacity={0.9}
-              >
-                <View style={styles.chatContent}>
-                  {/* Avatar */}
-                  <View style={styles.chatAvatar}>
-                    <Text style={styles.chatAvatarEmoji}>👩‍🎓</Text>
-                  </View>
-
-                  {/* Chat Info */}
-                  <View style={styles.chatInfo}>
-                    <View style={styles.chatHeader}>
-                      <Text style={styles.chatName}>
-                        {chat.otherUser.firstName} {chat.otherUser.lastName}
-                      </Text>
-                      <Text style={styles.chatTime}>{chat.lastMessageTime}</Text>
-                    </View>
-                    <Text style={styles.chatMessage} numberOfLines={1}>
-                      {chat.lastMessage}
-                    </Text>
-                    {chat.isActiveTrade && chat.tradeStatus && (
-                      <View style={styles.tradeStatus}>
-                        <Text style={styles.tradeIcon}>📍</Text>
-                        <Text style={styles.tradeStatusText}>
-                          {chat.tradeStatus}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Listing Thumbnail */}
-                  {chat.listingImage && (
-                    <View style={styles.listingThumbnail}>
-                      <Text style={styles.thumbnailEmoji}>{chat.listingImage}</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* My Listings Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Listings</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>➡️</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.listingsContainer}>
-            {/* Active Listing - Large Card */}
-            <TouchableOpacity
-              style={styles.activeListingCard}
-              onPress={() => onListingPress(MOCK_LISTINGS[0])}
-              activeOpacity={0.9}
-            >
-              <View style={styles.activeListingImage}>
-                <Text style={styles.activeListingEmoji}>💡</Text>
-              </View>
-              <View style={styles.activeListingOverlay}>
-                <View style={styles.activeListingInfo}>
-                  <Text style={styles.statusBadge}>Active</Text>
-                  <Text style={styles.activeListingTitle}>
-                    {MOCK_LISTINGS[0].title}
-                  </Text>
-                </View>
-                <Text style={styles.activeListingPrice}>
-                  ${MOCK_LISTINGS[0].price}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Secondary Listing - Compact Card */}
-            <TouchableOpacity
-              style={styles.listingCard}
-              onPress={() => onListingPress(MOCK_LISTINGS[1])}
-              activeOpacity={0.9}
-            >
-              <View style={styles.listingThumbnailSmall}>
-                <Text style={styles.listingThumbnailEmoji}>👜</Text>
-              </View>
-              <View style={styles.listingCardContent}>
-                {MOCK_LISTINGS[1].badge && (
-                  <View style={styles.ecoBadge}>
-                    <Text style={styles.ecoBadgeText}>
-                      {MOCK_LISTINGS[1].badge}
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.listingCardTitle}>
-                  {MOCK_LISTINGS[1].title}
-                </Text>
-                <Text style={styles.listingCardMeta}>
-                  ${MOCK_LISTINGS[1].price} • 3 Offers
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.moreButton}>
-                <Text style={styles.moreIcon}>⋮</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
@@ -278,6 +216,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    color: Colors.textSecondary,
+    fontSize: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
   },
   scrollView: {
     flex: 1,
@@ -300,7 +260,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     transform: [{ rotate: '-2deg' }],
+    overflow: 'hidden',
     ...Shadows.medium,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
   },
   avatarEmoji: {
     fontSize: 60,
@@ -315,13 +281,23 @@ const styles = StyleSheet.create({
     letterSpacing: -0.9,
     lineHeight: 40,
   },
+  usernameText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
   userMeta: {
     fontSize: 16,
     fontWeight: '500',
     color: Colors.textSecondary,
   },
+  emailText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+  },
   badgeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.lg,
     marginTop: Spacing.sm,
   },
@@ -360,20 +336,14 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginTop: Spacing.lg,
   },
-  editProfileButton: {
+  primaryButton: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
-    position: 'relative',
     ...Shadows.primary,
   },
-  editProfileShadow: {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: BorderRadius.lg,
-  },
-  editProfileText: {
+  primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
@@ -388,215 +358,6 @@ const styles = StyleSheet.create({
   },
   settingsIcon: {
     fontSize: 20,
-  },
-  section: {
-    marginBottom: Spacing.xxxl,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xxl,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  seeAll: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  chatsContainer: {
-    gap: Spacing.lg,
-  },
-  chatCard: {
-    backgroundColor: Colors.backgroundDark,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-  },
-  chatCardActive: {
-    backgroundColor: Colors.white,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
-    ...Shadows.medium,
-  },
-  chatContent: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
-  chatAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.gray300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chatAvatarEmoji: {
-    fontSize: 24,
-  },
-  chatInfo: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chatName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  chatTime: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    letterSpacing: -0.5,
-    textTransform: 'uppercase',
-  },
-  chatMessage: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  tradeStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: 'rgba(172, 44, 19, 0.1)',
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    alignSelf: 'flex-start',
-  },
-  tradeIcon: {
-    fontSize: 12,
-  },
-  tradeStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.primary,
-    letterSpacing: 0.275,
-    textTransform: 'uppercase',
-    lineHeight: 16.5,
-  },
-  listingThumbnail: {
-    width: 64,
-    height: 64,
-    borderRadius: 6,
-    backgroundColor: Colors.backgroundDark,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  thumbnailEmoji: {
-    fontSize: 28,
-  },
-  listingsContainer: {
-    gap: Spacing.lg,
-  },
-  activeListingCard: {
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.white,
-    overflow: 'hidden',
-    ...Shadows.medium,
-  },
-  activeListingImage: {
-    height: 160,
-    backgroundColor: Colors.gray200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeListingEmoji: {
-    fontSize: 60,
-  },
-  activeListingOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: Spacing.lg,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activeListingInfo: {
-    gap: Spacing.xs,
-  },
-  statusBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.primary,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  activeListingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  activeListingPrice: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  listingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
-    backgroundColor: Colors.backgroundDark,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  listingThumbnailSmall: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listingThumbnailEmoji: {
-    fontSize: 32,
-  },
-  listingCardContent: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  ecoBadge: {
-    backgroundColor: '#E1BFB8',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    alignSelf: 'flex-start',
-  },
-  ecoBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  listingCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  listingCardMeta: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: Colors.textSecondary,
-  },
-  moreButton: {
-    padding: Spacing.sm,
-  },
-  moreIcon: {
-    fontSize: 16,
-    color: Colors.textMuted,
   },
   bottomSpacing: {
     height: 100,

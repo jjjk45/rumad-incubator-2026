@@ -3,9 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import { Colors } from './src/constants/colors';
 import { BottomNavBar } from './src/components';
-import type { TabRoute, Listing, User, Chat } from './src/types';
+import type { TabRoute, Listing, User } from './src/types';
 
-// Screens
 import {
   LandingScreen,
   SignInScreen,
@@ -15,8 +14,11 @@ import {
   PostItemScreen,
   AccountScreen,
   ActivityScreen,
+  SettingsScreen,
+  EditProfileScreen,
   ChatDetailScreen,
 } from './src/screens';
+import React from 'react';
 
 type Screen =
   | 'landing'
@@ -25,7 +27,9 @@ type Screen =
   | 'home'
   | 'itemDetails'
   | 'postItem'
+  | 'editProfile'
   | 'account'
+  | 'settings'
   | 'activity'
   | 'chatDetail';
 
@@ -37,17 +41,21 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
+  const goToAccount = () => {
+    setCurrentScreen('account');
+    setActiveTab('Account');
+  };
+
   const handleGetStarted = () => {
     setCurrentScreen('signin');
   };
 
-  // Called by SignInScreen after Supabase OTP is verified successfully
   const handleSignInSuccess = () => {
     setIsAuthenticated(true);
     setCurrentScreen('home');
+    setActiveTab('Explore');
   };
 
-  // Called by SignUpScreen after backend OTP is verified successfully
   const handleSignUp = (userData: {
     firstName: string;
     lastName: string;
@@ -66,18 +74,32 @@ export default function App() {
       reviewCount: 0,
       isVerified: true,
     };
+
     setCurrentUser(newUser);
     setIsAuthenticated(true);
     setCurrentScreen('home');
+    setActiveTab('Explore');
   };
 
   const handleTabPress = (tab: TabRoute) => {
     setActiveTab(tab);
+
     switch (tab) {
-      case 'Explore':   setCurrentScreen('home');     break;
-      case 'Sell':      setCurrentScreen('postItem'); break;
-      case 'Activity':  setCurrentScreen('activity'); break;
-      case 'Account':   setCurrentScreen('account');  break;
+      case 'Explore':
+        setCurrentScreen('home');
+        break;
+      case 'Sell':
+        setCurrentScreen('postItem');
+        break;
+      case 'Activity':
+        setCurrentScreen('activity');
+        break;
+      case 'Account':
+        setCurrentScreen('account');
+        break;
+      default:
+        setCurrentScreen('home');
+        break;
     }
   };
 
@@ -90,40 +112,43 @@ export default function App() {
     if (currentScreen === 'chatDetail') {
       setCurrentScreen('activity');
       setActiveChatId(null);
+      setActiveTab('Activity');
+    } else if (currentScreen === 'settings' || currentScreen === 'editProfile') {
+      setCurrentScreen('account');
+      setActiveTab('Account');
     } else if (currentScreen === 'itemDetails') {
       setCurrentScreen('home');
-    } else if (currentScreen === 'postItem' || currentScreen === 'account') {
+      setActiveTab('Explore');
+    } else if (currentScreen === 'postItem') {
+      setCurrentScreen('home');
+      setActiveTab('Explore');
+    } else if (currentScreen === 'account') {
       setCurrentScreen('home');
       setActiveTab('Explore');
     } else {
       setCurrentScreen('home');
+      setActiveTab('Explore');
     }
   };
 
-  const handlePublish = (itemData: {
-    title: string;
-    category: string;
-    condition: string;
-    price: string;
-    isOpenToTrade: boolean;
-    isNegotiable: boolean;
-  }) => {
-    console.log('Publishing:', itemData);
-    setCurrentScreen('home');
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setSelectedListing(null);
+    setActiveChatId(null);
     setActiveTab('Explore');
+    setCurrentScreen('signin');
   };
 
-  const displayUser: User = currentUser ?? {
-    id: '1',
-    firstName: 'Alex',
-    lastName: 'Rivera',
-    email: 'alex.rivera@rutgers.edu',
-    university: 'Rutgers University',
-    classYear: 'Senior',
-    rating: 4.2,
-    reviewCount: 15,
-    isVerified: true,
-  };
+  const renderHomeScreen = () => (
+    <HomeScreen
+      onListingPress={handleListingPress}
+      onCategoryPress={(category) => console.log('Category:', category)}
+      onSeeAllPress={() => console.log('See all')}
+      onRandomPress={() => console.log('Random')}
+      onProfilePress={goToAccount}
+    />
+  );
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -148,14 +173,7 @@ export default function App() {
         );
 
       case 'home':
-        return (
-          <HomeScreen
-            onListingPress={handleListingPress}
-            onCategoryPress={(category) => console.log('Category:', category)}
-            onSeeAllPress={() => console.log('See all')}
-            onRandomPress={() => console.log('Random')}
-          />
-        );
+        return renderHomeScreen();
 
       case 'itemDetails':
         return selectedListing ? (
@@ -167,32 +185,52 @@ export default function App() {
             onViewProfile={() => console.log('View profile')}
             onReport={() => console.log('Report')}
             onMessageSeller={() => {
-              setActiveChatId('conv-1'); // Mock chat ID
+              setActiveChatId('conv-1');
               setCurrentScreen('chatDetail');
             }}
           />
-        ) : null;
+        ) : (
+          renderHomeScreen()
+        );
 
       case 'postItem':
-        return <PostItemScreen onBack={handleBack} onPublish={handlePublish} />;
+        return (
+          <PostItemScreen
+            onCancel={handleBack}
+            onPostSuccess={() => {
+              setCurrentScreen('activity');
+              setActiveTab('Activity');
+            }}
+          />
+        );
 
       case 'account':
         return (
           <AccountScreen
-            user={displayUser}
-            onEditProfile={() => console.log('Edit profile')}
-            onViewAllChats={() => {
-              setCurrentScreen('activity');
-              setActiveTab('Activity');
+            onEditProfile={() => {
+              setCurrentScreen('editProfile');
+              setActiveTab('Account');
             }}
-            onChatPress={(chat: Chat) => {
-              setActiveChatId(chat.id);
-              setCurrentScreen('chatDetail');
+            onSettingsPress={() => {
+              setCurrentScreen('settings');
+              setActiveTab('Account');
             }}
-            onListingPress={handleListingPress}
-            onSettingsPress={() => console.log('Settings')}
           />
         );
+
+      case 'editProfile':
+        return (
+          <EditProfileScreen
+            onBack={handleBack}
+            onSaveSuccess={() => {
+              setCurrentScreen('account');
+              setActiveTab('Account');
+            }}
+          />
+        );
+
+      case 'settings':
+        return <SettingsScreen onBack={handleBack} onLogout={handleLogout} />;
 
       case 'activity':
         return (
@@ -208,11 +246,17 @@ export default function App() {
 
       case 'chatDetail':
         return activeChatId ? (
-          <ChatDetailScreen
-            chatId={activeChatId}
-            onBack={handleBack}
+          <ChatDetailScreen chatId={activeChatId} onBack={handleBack} />
+        ) : (
+          <ActivityScreen
+            activeTab={activeTab}
+            onTabPress={handleTabPress}
+            onConversationPress={(chatId) => {
+              setActiveChatId(chatId);
+              setCurrentScreen('chatDetail');
+            }}
           />
-        ) : null;
+        );
 
       default:
         return <LandingScreen onGetStarted={handleGetStarted} />;
@@ -221,7 +265,9 @@ export default function App() {
 
   const showBottomNav =
     isAuthenticated &&
-    ['home', 'postItem', 'activity', 'account', 'chatDetail'].includes(currentScreen);
+    ['home', 'postItem', 'activity', 'account', 'chatDetail'].includes(
+      currentScreen
+    );
 
   return (
     <View style={styles.container}>

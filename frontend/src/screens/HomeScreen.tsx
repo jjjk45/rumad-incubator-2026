@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Colors, Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { TopAppBar } from '../components';
+import { supabase } from '../lib/supabase';
 import type { Listing, Category } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -19,6 +20,7 @@ interface HomeScreenProps {
   onCategoryPress: (category: Category) => void;
   onSeeAllPress: () => void;
   onRandomPress: () => void;
+  onProfilePress?: () => void;
 }
 
 const CATEGORIES: Category[] = [
@@ -37,7 +39,17 @@ const FEATURED_LISTINGS: Listing[] = [
     condition: 'Like New',
     category: 'Furniture',
     images: [],
-    seller: { id: '1', firstName: 'Alex', lastName: 'R', email: '', university: 'Rutgers', classYear: 'Senior', rating: 4.9, reviewCount: 42, isVerified: true },
+    seller: {
+      id: '1',
+      firstName: 'Alex',
+      lastName: 'R',
+      email: '',
+      university: 'Rutgers',
+      classYear: 'Senior',
+      rating: 4.9,
+      reviewCount: 42,
+      isVerified: true,
+    },
     location: 'North Campus',
     distance: '0.4 miles',
     postedAt: '2 hours ago',
@@ -54,7 +66,17 @@ const FEATURED_LISTINGS: Listing[] = [
     condition: 'Good',
     category: 'Home & Kitchen',
     images: [],
-    seller: { id: '2', firstName: 'Sam', lastName: 'T', email: '', university: 'Rutgers', classYear: 'Junior', rating: 4.5, reviewCount: 12, isVerified: true },
+    seller: {
+      id: '2',
+      firstName: 'Sam',
+      lastName: 'T',
+      email: '',
+      university: 'Rutgers',
+      classYear: 'Junior',
+      rating: 4.5,
+      reviewCount: 12,
+      isVerified: true,
+    },
     location: 'West Commons',
     distance: '1.2 miles',
     postedAt: '5 hours ago',
@@ -71,7 +93,17 @@ const FEATURED_LISTINGS: Listing[] = [
     condition: 'Like New',
     category: 'Home & Kitchen',
     images: [],
-    seller: { id: '3', firstName: 'Jordan', lastName: 'M', email: '', university: 'Rutgers', classYear: 'Sophomore', rating: 4.7, reviewCount: 8, isVerified: true },
+    seller: {
+      id: '3',
+      firstName: 'Jordan',
+      lastName: 'M',
+      email: '',
+      university: 'Rutgers',
+      classYear: 'Sophomore',
+      rating: 4.7,
+      reviewCount: 8,
+      isVerified: true,
+    },
     location: 'Library Sq.',
     distance: '0.2 miles',
     postedAt: '1 day ago',
@@ -90,7 +122,17 @@ const NEW_LISTINGS: Listing[] = [
     condition: 'Like New',
     category: 'Tech',
     images: [],
-    seller: { id: '4', firstName: 'Chris', lastName: 'L', email: '', university: 'Rutgers', classYear: 'Graduate', rating: 5.0, reviewCount: 23, isVerified: true },
+    seller: {
+      id: '4',
+      firstName: 'Chris',
+      lastName: 'L',
+      email: '',
+      university: 'Rutgers',
+      classYear: 'Graduate',
+      rating: 5.0,
+      reviewCount: 23,
+      isVerified: true,
+    },
     location: 'Busch Campus',
     distance: '0.8mi',
     postedAt: '30 min ago',
@@ -106,7 +148,17 @@ const NEW_LISTINGS: Listing[] = [
     condition: 'Good',
     category: 'Furniture',
     images: [],
-    seller: { id: '5', firstName: 'Taylor', lastName: 'K', email: '', university: 'Rutgers', classYear: 'Senior', rating: 4.3, reviewCount: 15, isVerified: true },
+    seller: {
+      id: '5',
+      firstName: 'Taylor',
+      lastName: 'K',
+      email: '',
+      university: 'Rutgers',
+      classYear: 'Senior',
+      rating: 4.3,
+      reviewCount: 15,
+      isVerified: true,
+    },
     location: 'Livingston',
     distance: '1.1mi',
     postedAt: '2 hours ago',
@@ -122,7 +174,17 @@ const NEW_LISTINGS: Listing[] = [
     condition: 'Fair',
     category: 'Home & Kitchen',
     images: [],
-    seller: { id: '6', firstName: 'Morgan', lastName: 'P', email: '', university: 'Rutgers', classYear: 'Freshman', rating: 4.1, reviewCount: 3, isVerified: true },
+    seller: {
+      id: '6',
+      firstName: 'Morgan',
+      lastName: 'P',
+      email: '',
+      university: 'Rutgers',
+      classYear: 'Freshman',
+      rating: 4.1,
+      reviewCount: 3,
+      isVerified: true,
+    },
     location: 'College Ave',
     distance: '0.3mi',
     postedAt: '3 hours ago',
@@ -137,17 +199,62 @@ export function HomeScreen({
   onCategoryPress,
   onSeeAllPress,
   onRandomPress,
+  onProfilePress,
 }: HomeScreenProps) {
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
+
+  const loadProfileAvatar = async () => {
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.log('Home user error:', userError.message);
+        return;
+      }
+
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.log('Home avatar error:', error.message);
+        return;
+      }
+
+      console.log('Home avatar URL:', data?.avatar_url);
+      setProfileAvatarUrl(data?.avatar_url || null);
+    } catch (err: any) {
+      console.log('Home avatar load error:', err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadProfileAvatar();
+  }, []);
+
   return (
     <View style={styles.container}>
-      <TopAppBar showLogo showSearch showNotification showProfile />
+      <TopAppBar
+        showLogo
+        showSearch
+        showNotification={false}
+        showProfile
+        profileAvatarUrl={profileAvatarUrl}
+        onProfilePress={onProfilePress}
+      />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Banner */}
         <View style={styles.hero}>
           <View style={styles.heroOverlay} />
           <View style={styles.heroContent}>
@@ -169,7 +276,6 @@ export function HomeScreen({
           </View>
         </View>
 
-        {/* Hand-Picked Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Hand-Picked Now</Text>
@@ -200,6 +306,7 @@ export function HomeScreen({
                     </View>
                   )}
                 </View>
+
                 <View style={styles.featuredContent}>
                   <View style={styles.featuredHeader}>
                     <Text style={styles.featuredTitle} numberOfLines={1}>
@@ -207,6 +314,7 @@ export function HomeScreen({
                     </Text>
                     <Text style={styles.featuredPrice}>${listing.price}</Text>
                   </View>
+
                   <View style={styles.featuredMeta}>
                     <Text style={styles.metaIcon}>📍</Text>
                     <Text style={styles.featuredDistance}>
@@ -219,7 +327,6 @@ export function HomeScreen({
           </ScrollView>
         </View>
 
-        {/* Categories Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Curated Categories</Text>
 
@@ -239,7 +346,6 @@ export function HomeScreen({
           </View>
         </View>
 
-        {/* Newly Listed Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
@@ -291,7 +397,6 @@ export function HomeScreen({
           </View>
         </View>
 
-        {/* Bottom spacing for nav bar */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>

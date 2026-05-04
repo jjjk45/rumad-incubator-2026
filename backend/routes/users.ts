@@ -1,116 +1,152 @@
-import { Router, Request, Response } from 'express'
-import supabase from '../lib/supabase'
+import { Router, Request, Response } from 'express';
+import supabase from '../lib/supabase';
 
-const router = Router()
+const router = Router();
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
+const VALID_EMAIL_DOMAIN = '@scarletmail.rutgers.edu';
+
+function isRutgersEmail(email: string) {
+  return email.trim().toLowerCase().endsWith(VALID_EMAIL_DOMAIN);
 }
 
-// GET all profiles
-router.get('/', async (req: Request, res: Response) => {
+// GET /users
+router.get('/', async (_req: Request, res: Response) => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
+    .order('first_name', { ascending: true });
 
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
-})
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
 
-// POST /users — Sign up: upsert profile + send OTP
+  return res.json(data);
+});
+
+// POST /users
+// Creates/updates profile, then sends OTP through Supabase Auth
 router.post('/', async (req: Request, res: Response) => {
-  const { first_name, last_name, email, university } = req.body
+  try {
+    const {
+      first_name,
+      last_name,
+      email,
+      university = 'Rutgers University',
+      class_year,
+    } = req.body;
 
-  if (!first_name || !last_name || !email) {
-    return res.status(400).json({ error: 'first_name, last_name, and email are required' })
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    if (!first_name || !last_name || !normalizedEmail || !class_year) {
+      return res.status(400).json({
+        error: 'first_name, last_name, email, and class_year are required',
+      });
+    }
+
+    if (!isRutgersEmail(normalizedEmail)) {
+      return res.status(400).json({
+        error: 'Only @scarletmail.rutgers.edu emails are allowed',
+      });
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          first_name,
+          last_name,
+          email: normalizedEmail,
+          university,
+          class_year,
+        },
+        {
+          onConflict: 'email',
+        }
+      )
+      .select()
+      .single();
+
+    if (profileError) {
+      return res.status(500).json({ error: profileError.message });
+    }
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+
+    if (otpError) {
+      return res.status(500).json({ error: otpError.message });
+    }
+
+    return res.status(200).json({
+      message: 'Profile saved and OTP sent',
+      profile,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message || 'Something went wrong',
+    });
   }
+});
 
-  const normalizedEmail = normalizeEmail(email)
-
-  const { error: upsertError } = await supabase
-    .from('profiles')
-    .upsert(
-      [{ email: normalizedEmail, first_name, last_name, university, email_verified: false }],
-      { onConflict: 'email' }
-    )
-
-  if (upsertError) return res.status(500).json({ error: upsertError.message })
-
-  const { error: otpError } = await supabase.auth.signInWithOtp({
-    email: normalizedEmail,
-    options: {
-      data: { first_name, last_name, university },
-      shouldCreateUser: true,
-    },
-  })
-
-  if (otpError) return res.status(500).json({ error: otpError.message })
-
-  res.status(200).json({ message: 'OTP sent to email' })
-})
-
-// POST /users/verify-otp — Verify OTP + mark email as verified
-router.post('/verify-otp', async (req: Request, res: Response) => {
-  const { email, token } = req.body
-
-  if (!email || !token) {
-    return res.status(400).json({ error: 'email and token are required' })
-  }
-
-  const normalizedEmail = normalizeEmail(email)
-
-  const { data, error: verifyError } = await supabase.auth.verifyOtp({
-    email: normalizedEmail,
-    token,
-    type: 'email',
-  })
-
-  if (verifyError) return res.status(400).json({ error: 'Invalid or expired OTP' })
-
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({ email_verified: true })
-    .eq('email', normalizedEmail)
-
-  if (updateError) return res.status(500).json({ error: updateError.message })
-
-  res.status(200).json({ message: 'Email verified!', user: data.user })
-})
-
+// POST /users/verify-email
+// Frontend verifies OTP with Supabase first, then calls this route with the access token
 router.post('/verify-email', async (req: Request, res: Response) => {
-  const { email } = req.body
-  const authHeader = req.headers.authorization
-  const accessToken =
-    typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
-      ? authHeader.slice('Bearer '.length)
-      : null
+  try {
+    const authHeader = req.headers.authorization;
 
-  if (!email || !accessToken) {
-    return res.status(400).json({ error: 'email and bearer token are required' })
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing authorization token' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { email } = req.body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (user.email?.toLowerCase() !== normalizedEmail) {
+      return res.status(403).json({
+        error: 'Token email does not match request email',
+      });
+    }
+
+    const updateData: Record<string, any> = {};
+
+    // Only keep this if your profiles table has this column.
+    // If your table does not have is_verified, remove this line.
+    updateData.is_verified = true;
+
+    const { data: profile, error: updateError } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('email', normalizedEmail)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    return res.status(200).json({
+      message: 'Email verified',
+      profile,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message || 'Something went wrong',
+    });
   }
+});
 
-  const normalizedEmail = normalizeEmail(email)
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(accessToken)
-
-  if (userError || !user?.email) {
-    return res.status(401).json({ error: 'Invalid or expired session' })
-  }
-
-  if (normalizeEmail(user.email) !== normalizedEmail) {
-    return res.status(403).json({ error: 'Session email does not match request email' })
-  }
-
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({ email_verified: true })
-    .eq('email', normalizedEmail)
-
-  if (updateError) return res.status(500).json({ error: updateError.message })
-
-  res.status(200).json({ message: 'Email verified!' })
-})
-
-export default router
+export default router;

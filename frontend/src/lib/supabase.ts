@@ -3,8 +3,16 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ovtfppauvbqxjbibqnqq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92dGZwcGF1dmJxeGpiaWJxbnFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4Mzg0NzcsImV4cCI6MjA4ODQxNDQ3N30.wGmazqLMovpJr0aCWk0T11HpQ1ue3GoCgh6wfnvqbwQ';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Anon key starts with:', supabaseAnonKey?.slice(0, 12));
+console.log('Anon key length:', supabaseAnonKey?.length);
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase frontend environment variables');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -14,4 +22,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
-

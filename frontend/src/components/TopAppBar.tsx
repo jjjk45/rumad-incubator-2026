@@ -14,6 +14,8 @@ interface TopAppBarProps {
   showSearch?: boolean;
   showNotification?: boolean;
   showProfile?: boolean;
+  notificationsEnabled?: boolean;
+  profileAvatarUrl?: string | null;
   onBackPress?: () => void;
   onSearchPress?: () => void;
   onNotificationPress?: () => void;
@@ -26,6 +28,8 @@ export function TopAppBar({
   showSearch = false,
   showNotification = false,
   showProfile = false,
+  notificationsEnabled = true,
+  profileAvatarUrl = null,
   onBackPress,
   onSearchPress,
   onNotificationPress,
@@ -46,28 +50,58 @@ export function TopAppBar({
           <View style={styles.spacer} />
         )}
 
-        {title && <Text style={styles.title}>{title}</Text>}
+        {title ? (
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+        ) : (
+          <View style={styles.titleSpacer} />
+        )}
 
         <View style={styles.rightActions}>
           {showSearch && (
-            <TouchableOpacity style={styles.button} onPress={onSearchPress}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={onSearchPress}
+              activeOpacity={0.75}
+            >
               <Text style={styles.buttonText}>🔍</Text>
             </TouchableOpacity>
           )}
+
           {showNotification && (
-            <TouchableOpacity style={styles.button} onPress={onNotificationPress}>
-              <Text style={styles.buttonText}>🔔</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={onNotificationPress}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.buttonText}>
+                {notificationsEnabled ? '🔔' : '🔕'}
+              </Text>
             </TouchableOpacity>
           )}
+
           {showProfile && (
-            <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={onProfilePress}
+              activeOpacity={0.75}
+            >
               <View style={styles.profilePlaceholder}>
-                <Text style={styles.profileText}>👤</Text>
+                {profileAvatarUrl ? (
+                  <Image
+                    source={{ uri: profileAvatarUrl }}
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <Text style={styles.profileText}>👤</Text>
+                )}
               </View>
             </TouchableOpacity>
           )}
         </View>
       </View>
+
       <View style={styles.divider} />
     </View>
   );
@@ -96,14 +130,22 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '180deg' }],
   },
   title: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '700',
     color: Colors.textPrimary,
+    textAlign: 'center',
+    marginHorizontal: Spacing.sm,
+  },
+  titleSpacer: {
+    flex: 1,
   },
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    minWidth: 40,
+    justifyContent: 'flex-end',
   },
   button: {
     width: 40,
@@ -126,6 +168,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  profileImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   profileText: {
     fontSize: 14,

@@ -13,9 +13,10 @@ import {
 import { Colors, Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { InputField, Button } from '../components';
 import { supabase } from '../lib/supabase';
-import { API_URL } from '../lib/api';
 
 const OTP_LENGTH = 8;
+const VALID_EMAIL_DOMAIN = '@scarletmail.rutgers.edu';
+const UNIVERSITY_NAME = 'Rutgers University';
 
 interface SignUpScreenProps {
   onSignUp: (userData: {
@@ -29,7 +30,6 @@ interface SignUpScreenProps {
 }
 
 const CLASS_YEARS = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
-const VALID_EMAIL_DOMAIN = '@scarletmail.rutgers.edu';
 
 function OtpInput({
   value,
@@ -137,12 +137,14 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [classYear, setClassYear] = useState('Senior');
+  const [classYear, setClassYear] = useState('Sophomore');
   const [isLoading, setIsLoading] = useState(false);
   const [showClassPicker, setShowClassPicker] = useState(false);
 
   const [step, setStep] = useState<'signup' | 'otp'>('signup');
   const [otp, setOtp] = useState('');
+
+  const normalizedEmail = email.trim().toLowerCase();
 
   const isValidEmail = (value: string) =>
     value.trim().toLowerCase().endsWith(VALID_EMAIL_DOMAIN);
@@ -157,28 +159,26 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     confirmPassword.trim() !== '' &&
     password === confirmPassword;
 
+  const requestSignupOtp = async () => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  };
+
   const handleSignUp = async () => {
     if (!isFormValid) return;
 
     setIsLoading(true);
+
     try {
-      const response = await fetch(`${API_URL}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          email: email.trim().toLowerCase(),
-          university: classYear,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create account');
-      }
-
+      await requestSignupOtp();
       setStep('otp');
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -187,44 +187,45 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     }
   };
 
-  // Verify OTP with Supabase first so the app receives a real session, then
-  // mark the profile as verified via the backend using that session.
   const handleVerifyOtp = async () => {
     if (otp.length !== OTP_LENGTH) return;
 
     setIsLoading(true);
-    try {
-      const normalizedEmail = email.trim().toLowerCase();
 
-      const { data: otpData, error: supabaseError } = await supabase.auth.verifyOtp({
+    try {
+      const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
         email: normalizedEmail,
         token: otp,
         type: 'email',
       });
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
+      if (otpError) {
+        throw new Error(otpError.message);
       }
 
-      const accessToken = otpData.session?.access_token;
-      if (!accessToken) {
-        throw new Error('Verification succeeded but no session was created.');
+      const userId = otpData.user?.id;
+
+      if (!userId) {
+        throw new Error('Verification succeeded, but no user was returned.');
       }
 
-      const response = await fetch(`${API_URL}/users/verify-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        {
+          id: userId,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           email: normalizedEmail,
-        }),
-      });
-      const data = await response.json();
+          university: UNIVERSITY_NAME,
+          class_year: classYear,
+          is_verified: true,
+        },
+        {
+          onConflict: 'id',
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid code');
+      if (profileError) {
+        throw new Error(profileError.message);
       }
 
       onSignUp({
@@ -244,24 +245,9 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
 
   const handleResend = async () => {
     setIsLoading(true);
+
     try {
-      const response = await fetch(`${API_URL}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          email: email.trim().toLowerCase(),
-          university: classYear,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to resend code');
-      }
-
+      await requestSignupOtp();
       Alert.alert('Sent!', 'A new code has been sent to your email.');
       setOtp('');
     } catch (err: any) {
@@ -282,7 +268,7 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
           <Text style={styles.otpTitle}>Check your{'\n'}email 📬</Text>
           <Text style={styles.otpSubtitle}>
             We sent an 8-digit code to{'\n'}
-            <Text style={styles.otpEmail}>{email}</Text>
+            <Text style={styles.otpEmail}>{normalizedEmail}</Text>
           </Text>
 
           <OtpInput value={otp} onChange={setOtp} length={OTP_LENGTH} />
@@ -397,6 +383,7 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
 
           <View style={styles.selectContainer}>
             <Text style={styles.selectLabel}>Class Year</Text>
+
             <TouchableOpacity
               style={styles.select}
               onPress={() => setShowClassPicker(!showClassPicker)}
