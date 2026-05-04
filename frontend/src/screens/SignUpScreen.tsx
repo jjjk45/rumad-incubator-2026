@@ -313,11 +313,11 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <View style={styles.header}>
           <View style={styles.headlineContainer}>
-            <Text style={styles.headline}>Create</Text>
-            <Text style={styles.headline}>Account</Text>
+            <Text style={styles.headline}>Create Account</Text>
           </View>
           <View style={styles.logoContainer}>
             <Text style={styles.logo}>🪑</Text>
@@ -508,15 +508,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.textPrimary,
     letterSpacing: -2.4,
-    lineHeight: 52,
     textShadowColor: 'rgba(0, 0, 0, 0.25)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 4,
   },
   logoContainer: {
-    width: 100,
+    width: 85,
     height: 100,
-    transform: [{ rotate: '180deg' }],
+    transform: [{ rotate: '180deg' },{translateY: 20}],
   },
   logo: {
     fontSize: 80,

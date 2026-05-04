@@ -25,6 +25,7 @@ export function LandingScreen({ onGetStarted }: LandingScreenProps) {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         {/* Avatar Stack */}
         <View style={styles.avatarStack}>
@@ -209,6 +210,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingHorizontal: 112,
     paddingVertical: Spacing.lg,
+    marginTop: 10,
     alignItems: 'center',
     ...Shadows.medium,
   },
