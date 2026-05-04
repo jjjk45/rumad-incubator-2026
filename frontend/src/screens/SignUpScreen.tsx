@@ -15,7 +15,13 @@ import { InputField, Button } from '../components';
 import { supabase } from '../lib/supabase';
 import { API_URL } from '../lib/api';
 
-const OTP_LENGTH = 8;
+const RESEND_COOLDOWN_SECONDS = 60;
+const DEFAULT_OTP_LENGTH = 6;
+const configuredOtpLength = Number(process.env.EXPO_PUBLIC_OTP_LENGTH);
+const OTP_LENGTH =
+  Number.isInteger(configuredOtpLength) && configuredOtpLength > 0
+    ? configuredOtpLength
+    : DEFAULT_OTP_LENGTH;
 
 interface SignUpScreenProps {
   onSignUp: (userData: {
@@ -143,6 +149,15 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
 
   const [step, setStep] = useState<'signup' | 'otp'>('signup');
   const [otp, setOtp] = useState('');
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!resendAvailableAt) return;
+
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [resendAvailableAt]);
 
   const isValidEmail = (value: string) =>
     value.trim().toLowerCase().endsWith(VALID_EMAIL_DOMAIN);
@@ -156,6 +171,34 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
     isValidPassword(password) &&
     confirmPassword.trim() !== '' &&
     password === confirmPassword;
+
+  const resendSecondsRemaining = resendAvailableAt
+    ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000))
+    : 0;
+  const canResend = !isLoading && resendSecondsRemaining === 0;
+
+  const startResendCooldown = () => {
+    setNow(Date.now());
+    setResendAvailableAt(Date.now() + RESEND_COOLDOWN_SECONDS * 1000);
+  };
+
+  const getSignupErrorMessage = (message: string) => {
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes('rate limit')) {
+      return 'Too many email attempts. Please wait a minute before requesting another code.';
+    }
+
+    if (normalized.includes('timeout') || normalized.includes('maximum time')) {
+      return 'The email service took too long to respond. Please try again in a minute.';
+    }
+
+    if (normalized.includes('failed to send') || normalized.includes('error sending')) {
+      return 'We could not send the code right now. Please try again shortly.';
+    }
+
+    return message;
+  };
 
   const handleSignUp = async () => {
     if (!isFormValid) return;
@@ -179,9 +222,10 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         throw new Error(data.error || 'Failed to create account');
       }
 
+      startResendCooldown();
       setStep('otp');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      Alert.alert('Error', getSignupErrorMessage(err.message));
     } finally {
       setIsLoading(false);
     }
@@ -243,6 +287,8 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
   };
 
   const handleResend = async () => {
+    if (!canResend) return;
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/users`, {
@@ -262,10 +308,11 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         throw new Error(data.error || 'Failed to resend code');
       }
 
+      startResendCooldown();
       Alert.alert('Sent!', 'A new code has been sent to your email.');
       setOtp('');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      Alert.alert('Error', getSignupErrorMessage(err.message));
     } finally {
       setIsLoading(false);
     }
@@ -281,7 +328,7 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
         <View style={styles.otpContent}>
           <Text style={styles.otpTitle}>Check your{'\n'}email 📬</Text>
           <Text style={styles.otpSubtitle}>
-            We sent an 8-digit code to{'\n'}
+            We sent a {OTP_LENGTH}-digit code to{'\n'}
             <Text style={styles.otpEmail}>{email}</Text>
           </Text>
 
@@ -298,10 +345,14 @@ export function SignUpScreen({ onSignUp, onSignIn }: SignUpScreenProps) {
           <TouchableOpacity
             onPress={handleResend}
             style={styles.resendButton}
-            disabled={isLoading}
+            disabled={!canResend}
           >
             <Text style={styles.resendText}>Didn't get a code? </Text>
-            <Text style={styles.resendLink}>Resend</Text>
+            <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
+              {resendSecondsRemaining > 0
+                ? `Resend in ${resendSecondsRemaining}s`
+                : 'Resend'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -499,6 +550,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  resendLinkDisabled: {
+    color: Colors.textMuted,
   },
   backButton: {
     alignItems: 'center',

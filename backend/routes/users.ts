@@ -2,9 +2,14 @@ import { Router, Request, Response } from 'express'
 import supabase from '../lib/supabase'
 
 const router = Router()
+const VALID_EMAIL_DOMAIN = '@scarletmail.rutgers.edu'
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
+}
+
+function isScarletMailEmail(email: string): boolean {
+  return normalizeEmail(email).endsWith(VALID_EMAIL_DOMAIN)
 }
 
 // GET all profiles
@@ -26,6 +31,10 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   const normalizedEmail = normalizeEmail(email)
+
+  if (!isScarletMailEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'A Rutgers ScarletMail email is required' })
+  }
 
   const { error: upsertError } = await supabase
     .from('profiles')
@@ -59,6 +68,10 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
 
   const normalizedEmail = normalizeEmail(email)
 
+  if (!isScarletMailEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'A Rutgers ScarletMail email is required' })
+  }
+
   const { data, error: verifyError } = await supabase.auth.verifyOtp({
     email: normalizedEmail,
     token,
@@ -90,6 +103,10 @@ router.post('/verify-email', async (req: Request, res: Response) => {
   }
 
   const normalizedEmail = normalizeEmail(email)
+
+  if (!isScarletMailEmail(normalizedEmail)) {
+    return res.status(400).json({ error: 'A Rutgers ScarletMail email is required' })
+  }
   const {
     data: { user },
     error: userError,
